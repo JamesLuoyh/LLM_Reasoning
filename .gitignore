@@ -1,0 +1,8 @@
+# Python bytecode files 
+__pycache__/
+
+# Distribution / packaging
+*.egg-info/
+
+# Testing
+garrett_test/
