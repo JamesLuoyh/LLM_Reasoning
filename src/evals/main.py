@@ -60,7 +60,7 @@ def main():
                 return MathEval(
                     equality_checker=equality_checker,
                     num_examples=num_examples,
-                    n_repeats=1 if debug_mode else 10,
+                    n_repeats=1 if debug_mode or num_examples else 10,
                 )
             case _:
                 raise Exception(f"Unrecognized eval type: {eval_name}")

@@ -37,7 +37,6 @@ class MathEval(Eval):
             extracted_answer = match.group(1) if match else None
             target_match = re.search(r"\\boxed\{(.*)\}", row["Answer"])
             target_answer = target_match.group(1) if target_match else None
-            print(row["Answer"], target_answer)
             score = float(
                 common.check_equality(
                     self.equality_checker,
@@ -55,5 +54,4 @@ class MathEval(Eval):
             return SingleEvalResult(html=html, score=score, convo=convo)
 
         results = common.map_with_progress(fn, self.examples)
-        print
         return common.aggregate_results(results)
