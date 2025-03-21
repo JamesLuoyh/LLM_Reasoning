@@ -1,20 +1,19 @@
 import operator
-from typing import Optional, Dict, Any
-from typing_extensions import Annotated, TypedDict
-from langgraph.graph import StateGraph
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, Union
 
-from langchain_core.runnables import RunnableConfig
-from langgraph.constants import Send
-from langgraph.checkpoint.memory import MemorySaver
-from typing import List, Literal, Union, NamedTuple, Optional
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-
-from objects import *
-from langchain_ollama import OllamaLLM
-
-from agents import *
 import numpy as np
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
+from langchain_ollama import OllamaLLM
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.constants import Send
+from langgraph.graph import StateGraph
+from typing_extensions import Annotated, TypedDict
+
+from llm_reasoning.agents import *
+from llm_reasoning.objects import *
+
 
 def update(
     existing: Optional[list] = None,
@@ -73,8 +72,6 @@ def _ensure_configurable(config: RunnableConfig) -> Configuration:
     }
 
 
-
-
 def plan(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
     """Generate the next state."""
     configurable = _ensure_configurable(config)
@@ -99,9 +96,9 @@ def plan(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
                 print(f"plan() Exception: {e}")
             print("plan():", i, plan_submission)
         plans.append(plan_submission.plan_items)
-        
 
     return {"plans": plans}
+
 
 def execute(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
     """Generate the next state."""
@@ -137,18 +134,19 @@ def review(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
     configurable = _ensure_configurable(config)
 
     ranks = []
-    assert(len(state["plans"]) == len(state["executed_steps"]))
+    assert len(state["plans"]) == len(state["executed_steps"])
     print("review", state["problem"])
     for i in range(configurable["n_reviewers"]):
         review_submission = None
-        while review_submission is None or sorted(review_submission.rank) != list(range(len(state["plans"]))):
+        while review_submission is None or sorted(
+                review_submission.rank) != list(range(len(state["plans"]))):
             try:
                 review_submission = reviewer().invoke(
                     {
                         "problem": state["problem"],
                         "executed_steps": state["executed_steps"],
                         "plans": state["plans"],
-                        "solved": state["solved"]
+                        "solved": state["solved"],
                     },
                     config=config,
                 )
@@ -156,14 +154,12 @@ def review(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
                 print(f"review() Exception: {e}")
             print("review()", i, review_submission)
         ranks.append(review_submission.rank)
-    
+
     # Only keep the first one for now.
     return {"evaluated_ranks": ranks}
 
 
-def aggregate(
-    state: ToTState, *, config: RunnableConfig
-) -> Dict[str, Any]:
+def aggregate(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
     # Here to implement the aggregation strategy
     scores = np.zeros(len(state["plans"]))
     reviews = np.array(state["evaluated_ranks"], dtype=np.int32)
@@ -173,9 +169,10 @@ def aggregate(
     argmax = np.argmax(scores)
 
     # only keep the first one for now
-    historical_plans = state.get("historical_plans", [[]] * len(state["plans"]))
+    historical_plans = state.get(
+        "historical_plans", [[]] * len(state["plans"]))
     historical_plans[argmax].append(state["plans"][argmax][0])
-    
+
     configurable = _ensure_configurable(config)
 
     return {
@@ -189,8 +186,7 @@ def aggregate(
 
 
 def should_terminate(
-    state: ToTState, config: RunnableConfig
-) -> Union[Literal["__end__"], Send]:
+        state: ToTState, config: RunnableConfig) -> Union[Literal["__end__"], Send]:
     configurable = _ensure_configurable(config)
     solved = state["solved"][0]
     if solved or state["depth"] >= configurable["max_depth"]:
