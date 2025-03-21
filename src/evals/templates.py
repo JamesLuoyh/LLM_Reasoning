@@ -47,16 +47,28 @@ Yes
 Yes
 (give benefit of the doubt to units)
 
+    Expression 1: 2
+    Expression 2: \frac{10 + 14\sqrt{5}}{8}
+
+No
+(If they are not equal to each other, then No)
+
+    Expression 1: 10
+    Expression 2: None
+
+No
+(If one expression is None and the other is not None, then it's trivially No)
 ---
 
 YOUR TASK
 
 
-Respond with only "Yes" or "No" (without quotes). Do not include a rationale.
+Respond with only "Yes" or "No" (without quotes). Do not include a rationale. Remeber, you are checking if the following two expressions are equivalent.
 
     Expression 1: %(expression1)s
     Expression 2: %(expression2)s
 """.strip()
+
 
 MATH_QUERY_TEMPLATE = """
 Solve the following math problem step by step. The last line of your response should be of the form Answer: $ANSWER (without quotes) where $ANSWER is the answer to the problem.
@@ -64,4 +76,16 @@ Solve the following math problem step by step. The last line of your response sh
 {Question}
 
 Remember to put your answer on its own line after "Answer:", and you do not need to use a \\boxed command.
+""".strip()
+
+
+QUERY_TEMPLATE_MULTICHOICE = """
+Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
+
+{Question}
+
+A) {A}
+B) {B}
+C) {C}
+D) {D}
 """.strip()

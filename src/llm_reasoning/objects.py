@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from typing import Any, List, Literal, NamedTuple, Optional, Union
 
-from typing import List, Literal, Union, NamedTuple, Optional
+from pydantic import BaseModel, Field
 
 
 # the plan is a list of reasoning steps to be taken to solve the problem
@@ -8,12 +8,10 @@ class Plan(BaseModel):
     """Submit a Plan to be executed. The plan is a list of reasoning steps to be taken to solve the problem"""
 
     draft: str = Field(
-        description="This is a place for drafting the plan before submitting."
-    )
+        description="This is a place for drafting the plan before submitting.")
 
     reasoning: str = Field(
-        description="The reasoning behind the submitted plan. Explain how you arrived at the plan."
-    )
+        description="The reasoning behind the submitted plan. Explain how you arrived at the plan.")
 
     plan_items: List[str] = Field(
         description="The plan to be submitted for execution, itemized into digestable chunks in a list of strings."
@@ -24,24 +22,21 @@ class ExecutionStep(BaseModel):
     """Submit an execution of a planned step."""
 
     draft: str = Field(
-        description="This is a place for drafting the plan execution before submitting."
-    )
+        description="This is a place for drafting the plan execution before submitting.")
 
     reasoning: str = Field(
         description="The reasoning behind the submitted execution. Explain step-by-step of the execution."
     )
 
     execution: str = Field(
-        description="The final output of the execution for the planned step."
-    )
+        description="The final output of the execution for the planned step.")
 
     solved: bool = Field(
-        description="Set the boolean to true if the entirely problem is solved correctly."
-    )
+        description="Set the boolean to true if the entirely problem is solved correctly.")
 
     final_answer: Optional[int] = Field(
-        description="Output the final answer for the entirely problem."
-    )
+        description="Output the final answer for the entirely problem.")
+
 
 class Evaluation(BaseModel):
     """Submit the evaluation of the proposed plan and the evaluation of the executed steps of the plan."""
@@ -53,7 +48,3 @@ class Evaluation(BaseModel):
     rank: List[int] = Field(
         description="Rank your prefereces of the plans and their associated initial step executions in a list of indices. The most preferred appears first."
     )
-
-
-
-

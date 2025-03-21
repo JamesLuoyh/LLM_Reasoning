@@ -1,21 +1,22 @@
 import operator
-from typing import Optional, Dict, Any
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, Union
+
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
+from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.constants import Send
 from langgraph.graph import StateGraph
 from typing_extensions import Annotated, TypedDict
 
-from langchain_core.runnables import RunnableConfig
-from langgraph.constants import Send
-from langgraph.checkpoint.memory import MemorySaver
-from typing import List, Literal, Union, NamedTuple, Optional
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from llm_reasoning.objects import *
 
-from objects import *
-from langchain_ollama import ChatOllama
-
-# llm = ChatOllama(model="llama3.1") 
+# llm = ChatOllama(model="llama3.1")
 # llm = ChatOllama(model="llama3-groq-tool-use")
 llm = ChatOpenAI(model="gpt-4o-mini")
+
+
 def planner():
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -28,12 +29,13 @@ def planner():
                 "the step with little ambiguity. Aware that the previous executed steps may not always be correct so your plan can also "
                 "be exploring new approaches. There is a limit to the maximum number of steps you can generate.",
             ),
-            ("user", "Generate the plan following the previous executed steps for solving the problem: {problem}. Previous planned steps: {historical_plans}."
-            " Previous steps executed:{executed_steps}. You may propose up to {k} steps. "),
+            (
+                "user",
+                "Generate the plan following the previous executed steps for solving the problem: {problem}. Previous planned steps: {historical_plans}."
+                " Previous steps executed:{executed_steps}. You may propose up to {k} steps. ",
+            ),
         ],
     ).partial(candidate="")
-
-    
 
     bound_llm = llm.with_structured_output(Plan)
     return prompt | bound_llm
@@ -49,15 +51,17 @@ def executer():
                 "Your goal is to execute the first step in the plan exactly as specified. After that, identify whether the executed step also solves the entire problem. "
                 "If the entire problem is solved, output your final answer as an integer.",
             ),
-            ("user", "Execute the first step specified in the plan following the provided steps already executed. The problem: {problem}. "
-            "The executed steps: {executed_steps}. The plan that follows the executed steps has the following items: {plan}."),
+            (
+                "user",
+                "Execute the first step specified in the plan following the provided steps already executed. The problem: {problem}. "
+                "The executed steps: {executed_steps}. The plan that follows the executed steps has the following items: {plan}.",
+            ),
         ],
     )
 
-    
-
     bound_llm = llm.with_structured_output(ExecutionStep)
     return prompt | bound_llm
+
 
 def reviewer():
     prompt = ChatPromptTemplate.from_messages(
@@ -70,12 +74,13 @@ def reviewer():
                 "Some of the atempts may claim that the problem is solved. In this case, evaluate whether they have solved it correctly. If not, they should be placed to the end of the list. "
                 "You will then be asked to generate a ranked list of the quality of the plans from your most preferred to your least preferred using the 0-based indices. The most preferred comes first.",
             ),
-            ("user", "Generate a ranked list for the plans and their corresponding executions. Problem: {problem}. Plans: {plans}. Executions: {executed_steps}. Solved: {solved}. "
-            "The i-th plan corresponds to the i-th execution and the solved indicators."),
+            (
+                "user",
+                "Generate a ranked list for the plans and their corresponding executions. Problem: {problem}. Plans: {plans}. Executions: {executed_steps}. Solved: {solved}. "
+                "The i-th plan corresponds to the i-th execution and the solved indicators.",
+            ),
         ],
     )
-
-    
 
     bound_llm = llm.with_structured_output(Evaluation)
     return prompt | bound_llm
