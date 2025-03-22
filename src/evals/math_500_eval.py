@@ -17,7 +17,7 @@ class MathEval(Eval):
         n_repeats: int = 16,
     ):
         df = pandas.read_csv(
-            f"https://openaipublic.blob.core.windows.net/simple-evals/math_500_test.csv")
+            "https://openaipublic.blob.core.windows.net/simple-evals/math_500_test.csv")
         examples = [row.to_dict() for _, row in df.iterrows()]
         if num_examples:
             assert n_repeats == 1, "n_repeats only supported for num_examples = None"
@@ -37,11 +37,7 @@ class MathEval(Eval):
             extracted_answer = match.group(1) if match else None
             target_match = re.search(r"\\boxed\{(.*)\}", row["Answer"])
             target_answer = target_match.group(1) if target_match else None
-            score = float(
-                common.check_equality(
-                    self.equality_checker,
-                    target_answer,
-                    extracted_answer))
+            score = float(common.is_equiv(target_answer, extracted_answer))
             html = common.jinja_env.from_string(HTML_JINJA).render(
                 prompt_messages=prompt_messages,
                 next_message=dict(content=response_text, role="assistant"),
