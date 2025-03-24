@@ -1,3 +1,7 @@
+# Code adapted from OpenAI (2024)
+# Source: https://github.com/openai/simple-evals/
+# Licensed under the MIT License
+
 import argparse
 import json
 import os
