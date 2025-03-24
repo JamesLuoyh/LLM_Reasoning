@@ -1,6 +1,11 @@
+# Code adapted from OpenAI (2024)
+# Source: https://github.com/openai/simple-evals/
+# Licensed under the MIT License
+
 import argparse
 import json
 import os
+from datetime import datetime
 
 import pandas as pd
 
@@ -82,7 +87,9 @@ def main():
             result = eval_obj(sampler)
             # ^^^ how to use a sampler
             file_stem = f"{eval_name}_{model_name}"
-            report_filename = f"/{root_report_foldername}/{file_stem}{debug_suffix}.html"
+            dateTimeObj = datetime.now()
+            date = dateTimeObj.strftime("_%m_%d_%H_%M_%S")
+            report_filename = f"/{root_report_foldername}/{file_stem}{debug_suffix}{date}.html"
             print(f"Writing report to {report_filename}")
             with open(report_filename, "w") as fh:
                 fh.write(common.make_report(result))

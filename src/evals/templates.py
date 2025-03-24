@@ -1,3 +1,7 @@
+# Code adapted from OpenAI (2024)
+# Source: https://github.com/openai/simple-evals/
+# Licensed under the MIT License
+
 EQUALITY_TEMPLATE = r"""
 Look at the following two expressions (answers to a math problem) and judge whether they are equivalent. Only perform trivial simplifications
 
