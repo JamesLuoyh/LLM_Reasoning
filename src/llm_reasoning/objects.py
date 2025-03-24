@@ -34,7 +34,7 @@ class ExecutionStep(BaseModel):
     solved: bool = Field(
         description="Set the boolean to true if the entirely problem is solved correctly.")
 
-    final_answer: Optional[int] = Field(
+    final_answer: str = Field(
         description="Output the final answer for the entirely problem.")
 
 

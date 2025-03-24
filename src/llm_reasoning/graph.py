@@ -72,7 +72,8 @@ def _ensure_configurable(config: RunnableConfig) -> Configuration:
     }
 
 
-def plan(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
+def plan(state: ToTState, *, config: RunnableConfig,
+         llm: Any) -> Dict[str, Any]:
     """Generate the next state."""
     configurable = _ensure_configurable(config)
 
@@ -83,7 +84,7 @@ def plan(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
         plan_submission = None
         while plan_submission is None:
             try:
-                plan_submission = planner().invoke(
+                plan_submission = planner(llm).invoke(
                     {
                         "problem": state["problem"],
                         "executed_steps": state.get("executed_steps", [""] * configurable["beam_size"])[i],
@@ -100,7 +101,8 @@ def plan(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
     return {"plans": plans}
 
 
-def execute(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
+def execute(state: ToTState, *, config: RunnableConfig,
+            llm: Any) -> Dict[str, Any]:
     """Generate the next state."""
     configurable = _ensure_configurable(config)
 
@@ -111,7 +113,7 @@ def execute(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
         execute_submission = None
         while execute_submission is None:
             try:
-                execute_submission = executer().invoke(
+                execute_submission = executer(llm).invoke(
                     {
                         "problem": state["problem"],
                         "executed_steps": executed_steps[i],
@@ -129,7 +131,8 @@ def execute(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
     return {"executed_steps": executed_steps, "solved": solved}
 
 
-def review(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
+def review(state: ToTState, *, config: RunnableConfig,
+           llm: Any) -> Dict[str, Any]:
     """Generate the next state."""
     configurable = _ensure_configurable(config)
 
@@ -141,7 +144,7 @@ def review(state: ToTState, *, config: RunnableConfig) -> Dict[str, Any]:
         while review_submission is None or sorted(
                 review_submission.rank) != list(range(len(state["plans"]))):
             try:
-                review_submission = reviewer().invoke(
+                review_submission = reviewer(llm).invoke(
                     {
                         "problem": state["problem"],
                         "executed_steps": state["executed_steps"],

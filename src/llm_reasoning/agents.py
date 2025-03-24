@@ -12,12 +12,8 @@ from typing_extensions import Annotated, TypedDict
 
 from llm_reasoning.objects import *
 
-# llm = ChatOllama(model="llama3.1")
-# llm = ChatOllama(model="llama3-groq-tool-use")
-llm = ChatOpenAI(model="gpt-4o-mini")
 
-
-def planner():
+def planner(llm):
     prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -41,7 +37,7 @@ def planner():
     return prompt | bound_llm
 
 
-def executer():
+def executer(llm):
     prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -63,7 +59,7 @@ def executer():
     return prompt | bound_llm
 
 
-def reviewer():
+def reviewer(llm):
     prompt = ChatPromptTemplate.from_messages(
         [
             (
