@@ -106,14 +106,14 @@ class ToT(LanguageModel):
         self.config = {
             "configurable": {
                 "thread_id": "test_1",
-                "max_depth": 2,
+                "max_depth": 10,
                 "recursion_limit": 100}}
 
     def __call__(self, message_list: MessageList) -> str:
         counter = 1
         assert len(message_list) == 1 and message_list[0]["content"]
         for step in self.graph.invoke(
-                {"problem": "Which is larger, 0.9 or 0.11?"}, config=self.config):
+                {"problem": message_list[0]["content"]}, config=self.config):
             print("step", counter, step)
             counter += 1
 
