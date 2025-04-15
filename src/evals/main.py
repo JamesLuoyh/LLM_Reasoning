@@ -11,7 +11,7 @@ import pandas as pd
 
 from evals import common
 from evals.math_500_eval import MathEval
-from evals.models import Llama3, ToT
+from evals.models import Llama3, ToT, VoteLLM
 
 
 def main():
@@ -40,6 +40,7 @@ def main():
         # Baseline models
         "base_llama3": Llama3(temperature=0.7, num_predict=2048, structured=False),
         "ToT": ToT(temperature=0.7),
+        "vote_llm": VoteLLM(temperature=0.7, num_predict=2048, debug=args.debug),
     }
 
     if args.list_model_structures:
@@ -67,6 +68,7 @@ def main():
                     equality_checker=equality_checker,
                     num_examples=num_examples,
                     n_repeats=1 if debug_mode or num_examples else 10,
+                    answer_format=True if args.model_structure.startswith("base") else False
                 )
             case _:
                 raise Exception(f"Unrecognized eval type: {eval_name}")
