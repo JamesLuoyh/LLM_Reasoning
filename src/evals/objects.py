@@ -60,6 +60,7 @@ class Eval:
     def __call__(self, model: LanguageModel) -> EvalResult:
         raise NotImplementedError
 
+
 class AggregatedSolutionWrapper:
     """
     Wrapper for the aggregated solution so it can be called in evals

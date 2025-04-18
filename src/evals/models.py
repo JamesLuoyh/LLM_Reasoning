@@ -4,12 +4,9 @@ from typing import Any
 
 from langchain_ollama import ChatOllama
 
-from evals.objects import Answer, LanguageModel, MessageList, AggregatedSolutionWrapper
-from llm_reasoning.graph import *
 import simple_llm_voting.graph as voting_graph
-from simple_llm_voting.agents import generator, voter
-from simple_llm_voting.objects import Generation, Vote
-
+from evals.objects import AggregatedSolutionWrapper, Answer, LanguageModel, MessageList
+from llm_reasoning.graph import *
 
 class Llama3(LanguageModel):
 
@@ -103,14 +100,16 @@ class ToT(LanguageModel):
 
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}
-    
+
+
 class VoteLLM(LanguageModel):
     def __init__(self, temperature: float = 0.7, num_predict: int = 2048,
-                 trace: bool =False,  debug: bool = False):
+                 trace: bool = False, debug: bool = False):
 
-        self.llm = ChatOllama(model="llama3.1", 
-                              temperature=temperature,
-                              num_predict=num_predict)
+        self.llm = ChatOllama(
+            model="llama3.1",
+            temperature=temperature,
+            num_predict=num_predict)
         self.debug = debug
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
@@ -132,10 +131,18 @@ class VoteLLM(LanguageModel):
             state_schema=voting_graph.State,
             config_schema=voting_graph.Configuration)
         # Add nodes
-        self.builder.add_node("generate", partial(voting_graph.generate, 
-                                                  llm=self.llm, debug=self.debug))
-        self.builder.add_node("vote", partial(voting_graph.vote, 
-                                              llm=self.llm, debug=self.debug))
+        self.builder.add_node(
+            "generate",
+            partial(
+                voting_graph.generate,
+                llm=self.llm,
+                debug=self.debug))
+        self.builder.add_node(
+            "vote",
+            partial(
+                voting_graph.vote,
+                llm=self.llm,
+                debug=self.debug))
         self.builder.add_node("aggregate", partial(voting_graph.majority_vote))
 
         # Add edges
@@ -165,7 +172,7 @@ class VoteLLM(LanguageModel):
 
         final_state = self.graph.get_state(self.config)
         aggregated_solution = final_state.values["aggregated_solution"]
-        if self.debug: 
+        if self.debug:
             print(f"Found a solution: {aggregated_solution}")
 
         aggregated_solution = AggregatedSolutionWrapper(aggregated_solution)
@@ -173,4 +180,3 @@ class VoteLLM(LanguageModel):
 
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}
-    

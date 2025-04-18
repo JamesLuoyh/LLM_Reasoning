@@ -68,7 +68,8 @@ def main():
                     equality_checker=equality_checker,
                     num_examples=num_examples,
                     n_repeats=1 if debug_mode or num_examples else 10,
-                    answer_format=True if args.model_structure.startswith("base") else False
+                    answer_format=True if args.model_structure.startswith(
+                        "base") else False,
                 )
             case _:
                 raise Exception(f"Unrecognized eval type: {eval_name}")

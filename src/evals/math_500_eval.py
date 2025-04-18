@@ -34,7 +34,7 @@ class MathEval(Eval):
 
     def __call__(self, sampler: LanguageModel) -> EvalResult:
         def fn(row: dict):
-            if self.answer_format:
+            if self.answer_format:  # Answer format is for eval that does not use langchain
                 prompt_messages = [
                     sampler._pack_message(
                         content=MATH_QUERY_TEMPLATE.format(
@@ -43,14 +43,20 @@ class MathEval(Eval):
                 prompt_messages = [
                     sampler._pack_message(
                         content=MATH_QUERY_TEMPLATE_WITHOUT_ANSWER_LINE.format(
-                            **row), role="user")]
-            try: 
+                            **row), role="user")
+                ]
+            try:
                 response_text = sampler(prompt_messages).content
             except Exception as e:
                 print(f"Error in model invocation: {e}")
-                response_text = None 
-            match = re.search(ANSWER_PATTERN, response_text)
-            extracted_answer = match.group(1) if match else None
+                response_text = ""
+
+            if self.answer_format:
+                match = re.search(ANSWER_PATTERN, response_text)
+                extracted_answer = match.group(1) if match else None
+            else:
+                extracted_answer = response_text
+
             target_match = re.search(r"\\boxed\{(.*)\}", row["Answer"])
             target_answer = target_match.group(1) if target_match else None
             score = float(common.is_equiv(target_answer, extracted_answer))
