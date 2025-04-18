@@ -11,7 +11,7 @@ import pandas as pd
 
 from evals import common
 from evals.math_500_eval import MathEval
-from evals.models import Llama3, ToT, VoteLLM
+from evals.models import *
 
 
 def main():
@@ -41,6 +41,7 @@ def main():
         "base_llama3": Llama3(temperature=0.7, num_predict=2048, structured=False),
         "ToT": ToT(temperature=0.7),
         "vote_llm": VoteLLM(temperature=0.7, num_predict=2048, debug=args.debug),
+        "gemini2_flash": Gemini2_flash(temperature=1.5),
     }
 
     if args.list_model_structures:

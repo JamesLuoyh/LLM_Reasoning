@@ -2,11 +2,44 @@ import os
 from functools import partial
 from typing import Any
 
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 
 import simple_llm_voting.graph as voting_graph
 from evals.objects import AggregatedSolutionWrapper, Answer, LanguageModel, MessageList
 from llm_reasoning.graph import *
+
+
+def _set_env(var: str, pwd: str):
+    if not os.environ.get(var):
+        os.environ[var] = pwd
+
+
+class Gemini2_flash(LanguageModel):
+    def __init__(self, temperature: float = 1.5,
+                 num_predict: int = 2048, structured: bool = False):
+        self.model = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash-001",
+            temperature=temperature,
+            max_tokens=None,
+            timeout=None,
+            max_retries=2,
+            google_api_key="Your API Key",
+            # other params...
+        )
+        self.structured = structured
+
+    def __call__(self, message_list: MessageList) -> str:
+        if self.structured:
+            bound_llm = self.model.with_structured_output(Answer)
+
+            return bound_llm.invoke(message_list)
+
+        return self.model.invoke(message_list)
+
+    def _pack_message(self, role: str, content: Any):
+        return {"role": str(role), "content": content}
+
 
 class Llama3(LanguageModel):
 
@@ -37,9 +70,7 @@ class ToT(LanguageModel):
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
 
-        def _set_env(var: str, pwd: str):
-            if not os.environ.get(var):
-                os.environ[var] = pwd  # getpass.getpass(f"{var}: ")
+        # getpass.getpass(f"{var}: ")
 
         # _set_env("OPENAI_API_KEY", "YOUR API KEY")
         # To visualize the algorithm
