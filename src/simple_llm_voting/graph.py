@@ -106,8 +106,7 @@ def majority_vote(state: State) -> Dict[str, Any]:
     n_generators = len(preferences[0])
     votes = [0] * n_generators
     for preference in preferences:
-        for i in range(len(preference)):
-            votes[preference[i]] += 1
+        votes[preference[0]] += 1
 
     majority_vote_index = votes.index(max(votes))
     return {"aggregated_solution": state["solutions"][majority_vote_index]}
