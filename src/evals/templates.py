@@ -82,6 +82,11 @@ Solve the following math problem step by step. The last line of your response sh
 Remember to put your answer on its own line after "Answer:", and you do not need to use a \\boxed command.
 """.strip()
 
+MATH_QUERY_TEMPLATE_WITHOUT_ANSWER_LINE = """
+Solve the following math problem step by step.
+{Question}
+"""
+
 
 QUERY_TEMPLATE_MULTICHOICE = """
 Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.

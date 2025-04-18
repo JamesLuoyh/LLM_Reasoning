@@ -10,7 +10,7 @@ import pandas
 from evals import common
 from evals.common import ANSWER_PATTERN, HTML_JINJA
 from evals.objects import Eval, EvalResult, LanguageModel, SingleEvalResult
-from evals.templates import MATH_QUERY_TEMPLATE
+from evals.templates import MATH_QUERY_TEMPLATE, MATH_QUERY_TEMPLATE_WITHOUT_ANSWER_LINE
 
 
 class MathEval(Eval):
@@ -19,6 +19,7 @@ class MathEval(Eval):
         equality_checker: LanguageModel,
         num_examples: int | None = None,
         n_repeats: int = 16,
+        answer_format: bool = True,
     ):
         df = pandas.read_csv(
             "https://openaipublic.blob.core.windows.net/simple-evals/math_500_test.csv")
@@ -29,16 +30,33 @@ class MathEval(Eval):
             examples = rng.sample(examples, num_examples)
         self.examples = examples * n_repeats
         self.equality_checker = equality_checker
+        self.answer_format = answer_format
 
     def __call__(self, sampler: LanguageModel) -> EvalResult:
         def fn(row: dict):
-            prompt_messages = [
-                sampler._pack_message(
-                    content=MATH_QUERY_TEMPLATE.format(
-                        **row), role="user")]
-            response_text = sampler(prompt_messages).content
-            match = re.search(ANSWER_PATTERN, response_text)
-            extracted_answer = match.group(1) if match else None
+            if self.answer_format:  # Answer format is for eval that does not use langchain
+                prompt_messages = [
+                    sampler._pack_message(
+                        content=MATH_QUERY_TEMPLATE.format(
+                            **row), role="user")]
+            else:
+                prompt_messages = [
+                    sampler._pack_message(
+                        content=MATH_QUERY_TEMPLATE_WITHOUT_ANSWER_LINE.format(
+                            **row), role="user")
+                ]
+            try:
+                response_text = sampler(prompt_messages).content
+            except Exception as e:
+                print(f"Error in model invocation: {e}")
+                response_text = ""
+
+            if self.answer_format:
+                match = re.search(ANSWER_PATTERN, response_text)
+                extracted_answer = match.group(1) if match else None
+            else:
+                extracted_answer = response_text
+
             target_match = re.search(r"\\boxed\{(.*)\}", row["Answer"])
             target_answer = target_match.group(1) if target_match else None
             score = float(common.is_equiv(target_answer, extracted_answer))
