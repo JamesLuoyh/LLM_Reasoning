@@ -110,3 +110,8 @@ def majority_vote(state: State) -> Dict[str, Any]:
 
     majority_vote_index = votes.index(max(votes))
     return {"aggregated_solution": state["solutions"][majority_vote_index]}
+
+
+def self_consistency(state: State) -> Dict[str, Any]:
+    """Output the most common final answer among generators."""
+     state["solutions"]
