@@ -45,114 +45,118 @@ def check_equality(sampler: LanguageModel, expr1: str, expr2: str):
     return response.lower().strip() == "yes"
 
 
-def is_equiv(ground_truth: str, given: str,
+def is_equiv(expression_1: str, expression_2: str,
              verbose: bool = False, fast: bool = False):
-    if ground_truth is None and given is None:
+    if expression_1 is None and expression_2 is None:
         print("WARNING: Both None")
         return True
-    if ground_truth is None or given is None:
+    if expression_1 is None or expression_2 is None:
         return False
 
-    str_pass = ground_truth.strip() == given.strip()
+    str_pass = expression_1.strip() == expression_2.strip()
 
     if str_pass:
         return True
 
     def default_is_equiv(
-            ground_truth_normalized: Union[str, set], given_normalized: Union[str, set]) -> bool:
+            expression_1_normalized: Union[str, set], expression_2_normalized: Union[str, set]) -> bool:
         if verbose:
-            print(ground_truth_normalized, given_normalized)
+            print(expression_1_normalized, expression_2_normalized)
 
-        if isinstance(ground_truth_normalized,
-                      str) and ground_truth_normalized == given_normalized:
+        if isinstance(expression_1_normalized,
+                      str) and expression_1_normalized == expression_2_normalized:
             return True
 
         try:
             # e.g., gt = 30^\\circ -> {30, pi/6}, gv = pi/6
-            if isinstance(ground_truth_normalized, set) or isinstance(
-                    given_normalized, set):
-                if isinstance(ground_truth_normalized, str):
-                    ground_truth_normalized = {ground_truth_normalized}
-                if isinstance(given_normalized, str):
-                    given_normalized = {given_normalized}
-                for gt_norm in ground_truth_normalized:
-                    for gv_norm in given_normalized:
+            if isinstance(expression_1_normalized, set) or isinstance(
+                    expression_2_normalized, set):
+                if isinstance(expression_1_normalized, str):
+                    expression_1_normalized = {expression_1_normalized}
+                if isinstance(expression_2_normalized, str):
+                    expression_2_normalized = {expression_2_normalized}
+                for gt_norm in expression_1_normalized:
+                    for gv_norm in expression_2_normalized:
                         if is_latex_equiv(gt_norm, gv_norm, verbose=verbose):
                             return True
                 return False
             else:
                 return is_latex_equiv(
-                    ground_truth_normalized, given_normalized, verbose=verbose)
+                    expression_1_normalized, expression_2_normalized, verbose=verbose)
 
         except Exception as e:
             return False
 
-    ground_truth_normalized = string_normalize(ground_truth)
-    given_normalized = string_normalize(given)
-    default_equiv = default_is_equiv(ground_truth_normalized, given_normalized)
+    expression_1_normalized = string_normalize(expression_1)
+    expression_2_normalized = string_normalize(expression_2)
+    default_equiv = default_is_equiv(
+        expression_1_normalized,
+        expression_2_normalized)
     if fast or default_equiv:
         return default_equiv
     else:
-        ground_truth_normalized = string_normalize(
-            ground_truth, remove_mid_std_space=False)
-        given_normalized = string_normalize(given, remove_mid_std_space=False)
+        expression_1_normalized = string_normalize(
+            expression_1, remove_mid_std_space=False)
+        expression_2_normalized = string_normalize(
+            expression_2, remove_mid_std_space=False)
         default_equiv_space = default_is_equiv(
-            ground_truth_normalized, given_normalized)
+            expression_1_normalized, expression_2_normalized)
         if default_equiv_space:
             return True
 
-        ground_truth_normalized = string_normalize(
-            ground_truth, lower_case=False)
-        given_normalized = string_normalize(given, lower_case=False)
+        expression_1_normalized = string_normalize(
+            expression_1, lower_case=False)
+        expression_2_normalized = string_normalize(
+            expression_2, lower_case=False)
         default_equiv_case = default_is_equiv(
-            ground_truth_normalized, given_normalized)
+            expression_1_normalized, expression_2_normalized)
         if default_equiv_case:
             return True
 
-        raw_equiv = are_equal_under_sympy(ground_truth, given)
+        raw_equiv = are_equal_under_sympy(expression_1, expression_2)
         return raw_equiv
 
 
 def is_latex_equiv(
-    ground_truth_normalized: str,
-    given_normalized: str,
+    expression_1_normalized: str,
+    expression_2_normalized: str,
     verbose: bool = False,
 ) -> bool:
-    if len(given_normalized) == 0:
+    if len(expression_2_normalized) == 0:
         return False
 
     is_correct, splitted = False, False
     if (
-        "(" in ground_truth_normalized
-        or ")" in ground_truth_normalized
-        or "[" in ground_truth_normalized
-        or "]" in ground_truth_normalized
+        "(" in expression_1_normalized
+        or ")" in expression_1_normalized
+        or "[" in expression_1_normalized
+        or "]" in expression_1_normalized
     ):
         is_correct, splitted = is_equiv_possible_intervals(
-            ground_truth_normalized, given_normalized, verbose)
+            expression_1_normalized, expression_2_normalized, verbose)
 
     if not is_correct:
         is_correct, splitted = is_equiv_possible_tuple(
-            ground_truth_normalized, given_normalized, verbose)
+            expression_1_normalized, expression_2_normalized, verbose)
 
-    if not is_correct and (_str_is_mat(
-            ground_truth_normalized) or _str_is_mat(given_normalized)):
+    if not is_correct and (_str_is_mat(expression_1_normalized)
+                           or _str_is_mat(expression_2_normalized)):
         is_correct, splitted = is_equiv_possible_matrix(
-            ground_truth_normalized, given_normalized, verbose)
+            expression_1_normalized, expression_2_normalized, verbose)
 
     if not is_correct and not splitted:
         is_correct = are_equal_under_sympy(
-            ground_truth_normalized, given_normalized, verbose)
+            expression_1_normalized, expression_2_normalized, verbose)
     return is_correct
 
 
 def is_equiv_possible_intervals(
-    ground_truth_normalized: str,
-    given_normalized: str,
+    expression_1_normalized: str,
+    expression_2_normalized: str,
     verbose: bool = False,
 ) -> Tuple[bool, bool]:
-    gt_interval = _str_to_interval(ground_truth_normalized)
-    gv_interval = _str_to_interval(given_normalized)
+    gt_interval = _str_to_interval(expression_1_normalized)
+    gv_interval = _str_to_interval(expression_2_normalized)
 
     splitted = True
     if gt_interval is None and gv_interval is None:
@@ -166,44 +170,46 @@ def is_equiv_possible_intervals(
 
 
 def is_equiv_possible_tuple(
-    ground_truth_normalized: str,
-    given_normalized: str,
+    expression_1_normalized: str,
+    expression_2_normalized: str,
     verbose: bool = False,
 ) -> Tuple[bool, bool]:
     # split "(,,,)" or "[,,,]" into list, split ",,," into set
-    ground_truth_elems = split_tuple(ground_truth_normalized)
-    given_elems = split_tuple(given_normalized)
+    expression_1_elems = split_tuple(expression_1_normalized)
+    expression_2_elems = split_tuple(expression_2_normalized)
 
     if verbose:
-        print(ground_truth_elems, given_elems)
+        print(expression_1_elems, expression_2_elems)
 
     splitted = True
-    if isinstance(ground_truth_elems, str) and isinstance(given_elems, str):
-        if ground_truth_elems == ground_truth_normalized and given_elems == given_normalized:
+    if isinstance(expression_1_elems, str) and isinstance(
+            expression_2_elems, str):
+        if expression_1_elems == expression_1_normalized and expression_2_elems == expression_2_normalized:
             return False, False
         else:
-            return is_equiv(ground_truth_elems, given_elems, verbose), splitted
+            return is_equiv(expression_1_elems,
+                            expression_2_elems, verbose), splitted
 
     is_correct = False
-    if len(ground_truth_elems) != len(
-            given_elems) and not "\\in" in given_elems:
+    if len(expression_1_elems) != len(
+            expression_2_elems) and not "\\in" in expression_2_elems:
         is_correct = False
-    elif not isinstance(ground_truth_elems, type(given_elems)):
+    elif not isinstance(expression_1_elems, type(expression_2_elems)):
         is_correct = False
-    elif isinstance(ground_truth_elems, (list, tuple)):
-        for ground_truth_elem, given_elem in zip(
-                ground_truth_elems, given_elems):
-            if not is_equiv(ground_truth_elem, given_elem, verbose):
+    elif isinstance(expression_1_elems, (list, tuple)):
+        for expression_1_elem, expression_2_elem in zip(
+                expression_1_elems, expression_2_elems):
+            if not is_equiv(expression_1_elem, expression_2_elem, verbose):
                 return False, splitted
         return True, splitted
-    elif isinstance(ground_truth_elems, set):
-        gt_found_matches = [False] * len(ground_truth_elems)
-        gv_found_matches = [False] * len(given_elems)
-        for i, ground_truth_elem in enumerate(ground_truth_elems):
+    elif isinstance(expression_1_elems, set):
+        gt_found_matches = [False] * len(expression_1_elems)
+        gv_found_matches = [False] * len(expression_2_elems)
+        for i, expression_1_elem in enumerate(expression_1_elems):
             if not gt_found_matches[i]:
-                for j, given_elem in enumerate(given_elems):
+                for j, expression_2_elem in enumerate(expression_2_elems):
                     if not gv_found_matches[j] and is_equiv(
-                            ground_truth_elem, given_elem, verbose):
+                            expression_1_elem, expression_2_elem, verbose):
                         gt_found_matches[i] = True
                         gv_found_matches[j] = True
                         break
@@ -213,16 +219,16 @@ def is_equiv_possible_tuple(
 
 
 def is_equiv_possible_matrix(
-    ground_truth_normalized: str,
-    given_normalized: str,
+    expression_1_normalized: str,
+    expression_2_normalized: str,
     verbose: bool = False,
 ) -> Tuple[bool, bool]:
-    gt_matrix = split_matrix(ground_truth_normalized)
-    gv_matrix = split_matrix(given_normalized)
+    gt_matrix = split_matrix(expression_1_normalized)
+    gv_matrix = split_matrix(expression_2_normalized)
 
     splitted = True
     if isinstance(gt_matrix, str) and isinstance(gv_matrix, str):
-        if gt_matrix == ground_truth_normalized and gv_matrix == given_normalized:
+        if gt_matrix == expression_1_normalized and gv_matrix == expression_2_normalized:
             return False, False
         else:
             return is_equiv(gt_matrix, gv_matrix), splitted

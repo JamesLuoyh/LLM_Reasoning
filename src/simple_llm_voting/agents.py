@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 
-from simple_llm_voting.objects import Generation, Vote
+from simple_llm_voting.objects import Generation, Verification, Vote
 
 
 def generator(llm):
@@ -65,4 +65,25 @@ def voter(llm):
     )
 
     bound_llm = llm.with_structured_output(Vote)
+    return prompt | bound_llm
+
+
+def verifier(llm):
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                'An examiner has presented a math problem along with a "candidate solution". Your purpose is to assist in evaluating whether the *final answer* in the candidate solution is correct. ',
+            ),
+            (
+                "user",
+                "We will guide you through a series of exercises to fulfill this purpose. The question is a real exam problem, which means there is always one unique correct answer. Here is the math question. {problem} Here is the candidate solution. {solution}. Here is the reasoning steps. {reasoning} \n"
+                "Now we will proceed to analyzing the correctness of the candidate solution. We have two goals: identify if there is an error, and if there is an error, repair the candidate solution and identify whether the final answer has changed. For now, we will focus on methodically combing through the candidate solution and checking each step for a potential error. "
+                "[Steps to Follow] You will proceed through the candidate solution, one baby step at a time. In your exhaustive investigation of the solution, you will first form a short list of potential errors. Each entry in this list should be written as a self-contained, standalone mathematical claim that the candidate solution relies on being correct, but which you find suspicious upon first inspection. After forming this list, you will then proceed to validate each potential error by performing a detailed error validation check. "
+                "At the end, if you found a fatal error, then the solution is incorrect and you should return **False**. Otherwise, say **True** if the final answer is correct.",
+            ),
+        ],
+    )
+
+    bound_llm = llm.with_structured_output(Verification)
     return prompt | bound_llm
