@@ -40,7 +40,8 @@ def main():
         # Baseline models
         "base_llama3": Llama3(temperature=0.7, num_predict=2048, structured=False),
         "ToT": ToT(temperature=0.7),
-        "vote_llm": VoteLLM(temperature=0.7, num_predict=2048, debug=args.debug),
+        "majority_vote": MajorityVote(temperature=0.7, num_predict=2048, debug=args.debug),
+        "borda_count": BordaCount(temperature=0.7, num_predict=2048, debug=args.debug),
         "self_consistency": SelfConsistency(temperature=0.7, num_predict=2048, debug=args.debug),
         "gemini2_flash": Gemini2_flash(temperature=1.5),
         "verification": ScaleVerification(temperature=0.7, num_predict=2048, debug=args.debug),
