@@ -27,9 +27,9 @@ def _ensure_configurable(config: RunnableConfig) -> Configuration:
     configurable = config.get("configurable", {})
     return {
         **configurable,
-        "n_generators": configurable.get("n_generators", 2),
+        "n_generators": configurable.get("n_generators", 5),
         "n_voters": configurable.get("n_voters", 5),
-        "n_verifiers": configurable.get("n_verifiers", 1),
+        "n_verifiers": configurable.get("n_verifiers", 5),
         "retries": configurable.get("retries", 5),
     }
 
