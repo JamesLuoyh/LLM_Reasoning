@@ -23,3 +23,13 @@ class Vote(BaseModel):
     preference: List[int] = Field(
         description="Rank your prefereces of the generations in a list of indices. The most preferred appears first."
     )
+
+
+class Verification(BaseModel):
+    """Submit the vote of the proposed reasonings and solutions."""
+
+    verification_steps: str = Field(
+        description="The verification steps for verifying the solution.")
+
+    correct: bool = Field(
+        description="If the solution is correct, return True. Otherwise, return False.")
