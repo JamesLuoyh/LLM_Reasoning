@@ -32,6 +32,8 @@ HTML_JINJA = """
 <p>Correct Answer: {{ correct_answer }}</p>
 <p>Extracted Answer: {{ extracted_answer }}</p>
 <p>Score: {{ score }}</p>
+<p>Input tokens: {{ input_tokens }}</p>
+<p>Output tokens: {{ output_tokens }}</p>
 """
 
 
@@ -290,6 +292,11 @@ def aggregate_results(
             name2values[name].append(value)
         if single_eval_result.score is not None:
             name2values["score"].append(single_eval_result.score)
+        if single_eval_result.input_tokens is not None:
+            name2values["input_tokens"].append(single_eval_result.input_tokens)
+        if single_eval_result.output_tokens is not None:
+            name2values["output_tokens"].append(
+                single_eval_result.output_tokens)
         htmls.append(single_eval_result.html)
         convos.append(single_eval_result.convo)
     final_metrics = {}
@@ -298,8 +305,14 @@ def aggregate_results(
         for stat in stats:
             key = name if stat == "mean" else f"{name}:{stat}"
             final_metrics[key] = _compute_stat(values, stat)
-    return EvalResult(score=final_metrics.pop("score", None),
-                      metrics=final_metrics, htmls=htmls, convos=convos)
+    return EvalResult(
+        score=final_metrics.pop("score", None),
+        input_tokens=final_metrics.pop("input_tokens", None),
+        output_tokens=final_metrics.pop("output_tokens", None),
+        metrics=final_metrics,
+        htmls=htmls,
+        convos=convos,
+    )
 
 
 def map_with_progress(f: callable, xs: list[Any], num_threads: int = 2):
@@ -392,6 +405,14 @@ _report_template = """<!DOCTYPE html>
         <td><b>Score</b></td>
         <td>{{ score | float | round(3) }}</td>
     </tr>
+    <tr>
+        <td><b>Input Tokens</b></td>
+        <td>{{ input_tokens }}</td>
+    </tr>
+    <tr>
+        <td><b>Output tokens</b></td>
+        <td>{{ output_tokens }}</td>
+    </tr>
     {% for name, value in metrics.items() %}
     <tr>
         <td>{{ name }}</td>
@@ -416,6 +437,8 @@ def make_report(eval_result: EvalResult) -> str:
     """
     return jinja_env.from_string(_report_template).render(
         score=eval_result.score,
+        input_tokens=eval_result.input_tokens,
+        output_tokens=eval_result.output_tokens,
         metrics=eval_result.metrics,
         htmls=eval_result.htmls,
     )
@@ -426,7 +449,8 @@ def make_report_from_example_htmls(htmls: list[str]):
     Create a standalone HTML report from a list of example htmls
     """
     return jinja_env.from_string(_report_template).render(
-        score=None, metrics={}, htmls=htmls)
+        score=None, input_tokens=None, output_tokens=None, metrics={}, htmls=htmls
+    )
 
 
 def normalize_response(response: str) -> str:
