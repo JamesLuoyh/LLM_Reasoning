@@ -407,11 +407,11 @@ _report_template = """<!DOCTYPE html>
     </tr>
     <tr>
         <td><b>Input Tokens</b></td>
-        <td>{{ input_tokens }}</td>
+        <td>{{ input_tokens | float | round(3) }}</td>
     </tr>
     <tr>
         <td><b>Output tokens</b></td>
-        <td>{{ output_tokens }}</td>
+        <td>{{ output_tokens | float | round(3) }}</td>
     </tr>
     {% for name, value in metrics.items() %}
     <tr>
