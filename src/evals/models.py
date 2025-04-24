@@ -8,6 +8,7 @@ from langchain_ollama import ChatOllama
 import simple_llm_voting.graph as voting_graph
 from evals.objects import AggregatedSolutionWrapper, Answer, LanguageModel, MessageList
 from llm_reasoning.graph import *
+from simple_llm_voting.objects import Generation
 
 
 def set_langsmith_env():
@@ -26,23 +27,28 @@ os.environ["LANGSMITH_PROJECT"] = "ToT Tutorial"
 
 class Gemini2_flash(LanguageModel):
     def __init__(self, temperature: float = 1.5,
-                 num_predict: int = 2048, structured: bool = False):
+                 num_predict: int = 2048, structured: bool = True, max_retries = 2):
         self.model = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash-001",
             temperature=temperature,
             max_tokens=None,
             timeout=None,
-            max_retries=2,
+            max_retries=max_retries,
             google_api_key="Your API Key",
             # other params...
         )
         self.structured = structured
+        self.max_retries = max_retries
 
     def __call__(self, message_list: MessageList) -> str:
         if self.structured:
-            bound_llm = self.model.with_structured_output(Answer)
-
-            return bound_llm.invoke(message_list)
+            bound_llm = self.model.with_structured_output(Generation)
+            retries = 0
+            generation = None
+            while generation is None and retries < self.max_retries:
+                generation = bound_llm.invoke(message_list)
+                retries += 1
+            return AggregatedSolutionWrapper(generation.solution)
 
         return self.model.invoke(message_list)
 
@@ -142,11 +148,20 @@ class SelfConsistency(LanguageModel):
     def __init__(self, temperature: float = 0.7, num_predict: int = 2048,
                  trace: bool = False, debug: bool = False):
 
-        self.llm = ChatOllama(
-            model="llama3.1",
-            temperature=temperature,
-            num_predict=num_predict)
+        # self.llm = ChatOllama(
+        #     model="llama3.1",
+        #     temperature=temperature,
+        #     num_predict=num_predict)
         self.debug = debug
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash-001",
+            temperature=temperature,
+            max_tokens=num_predict,
+            timeout=None,
+            max_retries=2,
+            google_api_key="Your API Key",
+            # other params...
+        )
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
 
@@ -185,7 +200,7 @@ class SelfConsistency(LanguageModel):
 
         self.config = {
             "configurable": {
-                "thread_id": "test_1",
+                "thread_id": "self_consistency",
                 "recursion_limit": 100}}
 
     def __call__(self, message_list: MessageList) -> str:
@@ -289,19 +304,19 @@ class ScaleVerification(LanguageModel):
     def __init__(self, temperature: float = 0.7, num_predict: int = 2048,
                  trace: bool = False, debug: bool = False):
 
-        self.llm = ChatOllama(
-            model="llama3.1",
-            temperature=temperature,
-            num_predict=num_predict)
-        # self.llm = ChatGoogleGenerativeAI(
-        #     model="gemini-2.0-flash-001",
+        # self.llm = ChatOllama(
+        #     model="llama3.1",
         #     temperature=temperature,
-        #     max_tokens=num_predict,
-        #     timeout=None,
-        #     max_retries=1,
-        #     google_api_key="AIzaSyAzjIvxiY1xz6t-Hx6j9yCYM_cc-R7DQhk",
-        #     # other params...
-        # )
+        #     num_predict=num_predict)
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash-001",
+            temperature=temperature,
+            max_tokens=num_predict,
+            timeout=None,
+            max_retries=2,
+            google_api_key="YOUR API KEY",
+            # other params...
+        )
         self.debug = debug
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")

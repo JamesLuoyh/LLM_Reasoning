@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field, field_validator
 class Generation(BaseModel):
     """The output of the reasoning agent."""
 
-    reasoning: str = Field(description="The reasoning behind the solution.")
-    solution: str = Field(description="The final solution to the problem")
+    reasoning: str = Field(description="The reasoning behind the solution. There is no limit to the reasoning steps. Think as thoroughly as possible.")
+    solution: str = Field(description="The final solution to the problem. We use automatic evaluation so your answer key should be as simple and standard as possible for the purpose of matching.")
 
     @field_validator("solution", mode="before")
     def convert_solution_to_string(cls, value):
