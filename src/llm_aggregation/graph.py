@@ -4,6 +4,7 @@ import numpy as np
 from langchain_core.runnables import RunnableConfig
 
 from evals.common import is_equiv
+from evals.constants import INVALID_ANS
 from llm_aggregation.agents import generator, verifier, voter
 
 
@@ -63,8 +64,8 @@ def generate(state: State, *, config: RunnableConfig,
             reasonings.append(generation.reasoning)
             solutions.append(generation.solution)
         else:
-            reasonings.append("Not found.")
-            solutions.append("Not found.")
+            reasonings.append(INVALID_ANS)
+            solutions.append(INVALID_ANS)
 
     return {"reasonings": reasonings, "solutions": solutions}
 
@@ -112,8 +113,8 @@ def majority_vote(state: State, config: RunnableConfig) -> Dict[str, Any]:
     preferences = state["preferences"]
     if not preferences:
         return {"aggregated_solution": ""}
-    
-    n_generators = configurable["n_generators"]    
+
+    n_generators = configurable["n_generators"]
     votes = [0] * n_generators
     for preference in preferences:
         if preference:
@@ -122,8 +123,8 @@ def majority_vote(state: State, config: RunnableConfig) -> Dict[str, Any]:
     majority_vote_index = votes.index(max(votes))
     return {"aggregated_solution": state["solutions"][majority_vote_index]}
 
-def borda_count(state: State, 
-                config: RunnableConfig, 
+
+def borda_count(state: State, config: RunnableConfig,
                 debug: bool = False) -> Dict[str, Any]:
     "Borda count on the generated solutions."
 
@@ -132,24 +133,25 @@ def borda_count(state: State,
     print("preference: ", preferences)
     if not preferences:
         return {"aggregated_solution": ""}
-    
-    n_generators = configurable["n_generators"] 
-    print("n_generators ", n_generators)   
+
+    n_generators = configurable["n_generators"]
+    print("n_generators ", n_generators)
     borda_counts = {i: 0 for i in range(n_generators)}
-    for preference in preferences: 
+    for preference in preferences:
         if preference:
             for i, rank in enumerate(preference):
                 borda_counts[rank] += n_generators - i - 1
-        
+
     # Find the solution with the highest Borda count
     max_key = max(borda_counts, key=borda_counts.get)
 
-    if debug: 
+    if debug:
         print("preferences: ", preferences)
         print("borda_count: ", borda_counts)
         print("max_key: ", max_key)
         print("aggregated_solution: ", state["solutions"][max_key])
     return {"aggregated_solution": state["solutions"][max_key]}
+
 
 def best_of_n(state: State, debug: bool = False) -> Dict[str, Any]:
     """Best of n on the generated solutions."""
@@ -157,14 +159,15 @@ def best_of_n(state: State, debug: bool = False) -> Dict[str, Any]:
 
     if not state["preferences"]:
         return {"aggregated_solution": ""}
-    
+
     best_of_n_index = state["preferences"][0][0]
 
-    if debug: 
+    if debug:
         print("best_of_n: ", best_of_n_index)
         print("aggregated_solution: ", state["solutions"][best_of_n_index])
 
     return {"aggregated_solution": state["solutions"][best_of_n_index]}
+
 
 def self_consistency(state: State) -> Dict[str, Any]:
     """Output the most common final answer among generators."""
