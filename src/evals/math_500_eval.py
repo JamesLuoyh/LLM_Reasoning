@@ -13,6 +13,8 @@ from evals.constants import INVALID_ANS
 from evals.objects import Eval, EvalResult, LanguageModel, SingleEvalResult
 from evals.templates import MATH_QUERY_TEMPLATE, MATH_QUERY_TEMPLATE_WITHOUT_ANSWER_LINE
 
+# downloaded from https://openaipublic.blob.core.windows.net/simple-evals/math_500_test.csv
+DATASET = "data/math_500_test.csv"
 
 class MathEval(Eval):
     def __init__(
@@ -23,7 +25,8 @@ class MathEval(Eval):
         n_repeats: int = 16,
         answer_format: bool = True,
     ):
-        df = pandas.read_csv("data/math_500_test.csv")
+        
+        df = pandas.read_csv(DATASET)
         examples = [row.to_dict() for _, row in df.iterrows()]
         if idx_examples is not None and len(idx_examples) > 0:
             self.examples = [examples[i] for i in idx_examples]
