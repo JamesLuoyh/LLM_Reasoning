@@ -26,6 +26,11 @@ def main():
         type=str,
         help="Select a model structure by name")
     parser.add_argument(
+        "--model-type", 
+        type=str, 
+        help="Select a model type by name",
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="Run in debug mode")
@@ -41,16 +46,26 @@ def main():
 
     args = parser.parse_args()
 
+    model_types = [
+        "llama3", 
+        "gemini2_flash"
+    ]
+    
+    if args.model_type: 
+        if args.model_type not in model_types:
+            print(f"Model type {args.model_type} not found")
+            return
+    
     model_structures = {
         # Baseline models
         "base_llama3": Llama3(temperature=0.7, num_predict=2048, structured=False),
         "ToT": ToT(temperature=0.7),
-        "majority_vote": MajorityVote(temperature=0.7, num_predict=2048, debug=args.debug),
-        "borda_count": BordaCount(temperature=0.7, num_predict=2048, debug=args.debug),
-        "best_of_n": BestOfN(temperature=0.7, num_predict=2048, debug=args.debug),
-        "self_consistency": SelfConsistency(temperature=0.7, num_predict=2048, debug=args.debug),
+        "majority_vote": MajorityVote(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
+        "borda_count": BordaCount(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
+        "best_of_n": BestOfN(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
+        "self_consistency": SelfConsistency(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
         "gemini2_flash": Gemini2_flash(temperature=1.5),
-        "verification": ScaleVerification(temperature=0.7, num_predict=2048, debug=args.debug),
+        "verification": ScaleVerification(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
     }
 
     if args.list_model_structures:
