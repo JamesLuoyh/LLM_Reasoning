@@ -7,8 +7,8 @@ from langchain_ollama import ChatOllama
 
 import llm_aggregation.graph as aggregation_graph
 from evals.objects import AggregatedSolutionWrapper, Answer, LanguageModel, MessageList
+from llm_aggregation.objects import Generation
 from llm_reasoning.graph import *
-from simple_llm_voting.objects import Generation
 
 
 def set_langsmith_env():
@@ -26,15 +26,15 @@ os.environ["LANGSMITH_PROJECT"] = "ToT Tutorial"
 
 
 class Gemini2_flash(LanguageModel):
-    def __init__(self, temperature: float = 1.5,
-                 num_predict: int = 2048, structured: bool = True, max_retries = 2):
+    def __init__(self, temperature: float = 1.5, num_predict: int = 2048,
+                 structured: bool = True, max_retries=2):
         self.model = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash-001",
             temperature=temperature,
             max_tokens=None,
             timeout=None,
             max_retries=max_retries,
-            google_api_key="Your API Key",
+            google_api_key="",
             # other params...
         )
         self.structured = structured
@@ -261,7 +261,9 @@ class MajorityVote(LanguageModel):
                 aggregation_graph.vote,
                 llm=self.llm,
                 debug=self.debug))
-        self.builder.add_node("aggregate", partial(aggregation_graph.majority_vote))
+        self.builder.add_node(
+            "aggregate", partial(
+                aggregation_graph.majority_vote))
 
         # Add edges
         self.builder.add_edge("generate", "vote")
@@ -337,8 +339,11 @@ class BordaCount(LanguageModel):
                 aggregation_graph.vote,
                 llm=self.llm,
                 debug=self.debug))
-        self.builder.add_node("aggregate", partial(aggregation_graph.borda_count, 
-                                                   debug=self.debug))
+        self.builder.add_node(
+            "aggregate",
+            partial(
+                aggregation_graph.borda_count,
+                debug=self.debug))
 
         # Add edges
         self.builder.add_edge("generate", "vote")
@@ -375,6 +380,7 @@ class BordaCount(LanguageModel):
 
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}
+
 
 class BestOfN(LanguageModel):
     def __init__(self, temperature: float = 0.7, num_predict: int = 2048,
@@ -413,9 +419,12 @@ class BestOfN(LanguageModel):
                 aggregation_graph.vote,
                 llm=self.llm,
                 debug=self.debug))
-        
-        self.builder.add_node("aggregate", partial(aggregation_graph.best_of_n, 
-                                                   debug=self.debug))
+
+        self.builder.add_node(
+            "aggregate",
+            partial(
+                aggregation_graph.best_of_n,
+                debug=self.debug))
 
         # Add edges
         self.builder.add_edge("generate", "vote")
@@ -429,9 +438,7 @@ class BestOfN(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {
-                "thread_id": "test_1",
-                "recursion_limit": 100},
+            "configurable": {"thread_id": "test_1", "recursion_limit": 100},
             "n_voters": 1,
         }
 

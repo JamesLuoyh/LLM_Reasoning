@@ -9,3 +9,5 @@ garrett_test/
 
 # Evals 
 src/evals/reports/
+
+*.DS_Store
