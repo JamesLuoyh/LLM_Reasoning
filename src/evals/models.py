@@ -159,8 +159,15 @@ class ToT(LanguageModel):
 
 
 class SelfConsistency(LanguageModel):
-    def __init__(self, model_type: str, temperature: float = 0.7, num_predict: int = 2048,
-                 allow_duplicates: bool = True, trace: bool = False, debug: bool = False):
+    def __init__(
+        self,
+        model_type: str,
+        temperature: float = 0.7,
+        num_predict: int = 2048,
+        allow_duplicates: bool = True,
+        trace: bool = False,
+        debug: bool = False,
+    ):
 
         if model_type == "llama3":
             self.llm = ChatOllama(
@@ -178,12 +185,10 @@ class SelfConsistency(LanguageModel):
             )
         self.debug = debug
 
-        if not allow_duplicates: 
-            equality_checker = Gemini2_flash(
-                temperature=1.5, structured=False
-            )
-        else: 
-            equality_checker = None 
+        if not allow_duplicates:
+            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+        else:
+            equality_checker = None
 
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
@@ -222,12 +227,10 @@ class SelfConsistency(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {
-                "thread_id": "self_consistency",
-                "recursion_limit": 100}, 
+            "configurable": {"thread_id": "self_consistency", "recursion_limit": 100},
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
-            }
+        }
 
     def __call__(self, message_list: MessageList) -> str:
         counter = 1
@@ -251,8 +254,15 @@ class SelfConsistency(LanguageModel):
 
 
 class MajorityVote(LanguageModel):
-    def __init__(self, model_type: str, temperature: float = 0.7, num_predict: int = 2048,
-                 allow_duplicates: bool = True, trace: bool = False, debug: bool = False):
+    def __init__(
+        self,
+        model_type: str,
+        temperature: float = 0.7,
+        num_predict: int = 2048,
+        allow_duplicates: bool = True,
+        trace: bool = False,
+        debug: bool = False,
+    ):
 
         if model_type == "llama3":
             self.llm = ChatOllama(
@@ -266,16 +276,14 @@ class MajorityVote(LanguageModel):
                 max_tokens=num_predict,
                 timeout=None,
                 max_retries=2,
-                google_api_key="YOUR API KEY"
+                google_api_key="YOUR API KEY",
             )
         self.debug = debug
 
-        if not allow_duplicates: 
-            equality_checker = Gemini2_flash(
-                temperature=1.5, structured=False
-            )
-        else: 
-            equality_checker = None 
+        if not allow_duplicates:
+            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+        else:
+            equality_checker = None
 
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
@@ -321,12 +329,10 @@ class MajorityVote(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {
-                "thread_id": "test_1",
-                "recursion_limit": 100}, 
+            "configurable": {"thread_id": "test_1", "recursion_limit": 100},
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
-            }
+        }
 
     def __call__(self, message_list: MessageList) -> str:
         counter = 1
@@ -350,8 +356,15 @@ class MajorityVote(LanguageModel):
 
 
 class BordaCount(LanguageModel):
-    def __init__(self, model_type: str, temperature: float = 0.7, num_predict: int = 2048,
-                 allow_duplicates: bool = True, trace: bool = False, debug: bool = False):
+    def __init__(
+        self,
+        model_type: str,
+        temperature: float = 0.7,
+        num_predict: int = 2048,
+        allow_duplicates: bool = True,
+        trace: bool = False,
+        debug: bool = False,
+    ):
 
         if model_type == "llama3":
             self.llm = ChatOllama(
@@ -369,13 +382,11 @@ class BordaCount(LanguageModel):
             )
         self.debug = debug
 
-        if not allow_duplicates: 
-            equality_checker = Gemini2_flash(
-                temperature=1.5, structured=False
-            )
-        else: 
-            equality_checker = None 
-        
+        if not allow_duplicates:
+            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+        else:
+            equality_checker = None
+
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
 
@@ -422,12 +433,10 @@ class BordaCount(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {
-                "thread_id": "test_1",
-                "recursion_limit": 100},
+            "configurable": {"thread_id": "test_1", "recursion_limit": 100},
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
-            }
+        }
 
     def __call__(self, message_list: MessageList) -> str:
         counter = 1
@@ -451,8 +460,15 @@ class BordaCount(LanguageModel):
 
 
 class BestOfN(LanguageModel):
-    def __init__(self, model_type: str, temperature: float = 0.7, num_predict: int = 2048,
-                 allow_duplicates: bool = True, trace: bool = False, debug: bool = False):
+    def __init__(
+        self,
+        model_type: str,
+        temperature: float = 0.7,
+        num_predict: int = 2048,
+        allow_duplicates: bool = True,
+        trace: bool = False,
+        debug: bool = False,
+    ):
 
         if model_type == "llama3":
             self.llm = ChatOllama(
@@ -470,12 +486,10 @@ class BestOfN(LanguageModel):
             )
         self.debug = debug
 
-        if not allow_duplicates: 
-            equality_checker = Gemini2_flash(
-                temperature=1.5, structured=False
-            )
-        else: 
-            equality_checker = None 
+        if not allow_duplicates:
+            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+        else:
+            equality_checker = None
 
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
@@ -552,8 +566,15 @@ class BestOfN(LanguageModel):
 
 
 class ScaleVerification(LanguageModel):
-    def __init__(self, model_type: str, temperature: float = 0.7, num_predict: int = 2048,
-                 allow_duplicates: bool = True, trace: bool = False, debug: bool = False):
+    def __init__(
+        self,
+        model_type: str,
+        temperature: float = 0.7,
+        num_predict: int = 2048,
+        allow_duplicates: bool = True,
+        trace: bool = False,
+        debug: bool = False,
+    ):
 
         if model_type == "llama3":
             self.llm = ChatOllama(
@@ -573,12 +594,10 @@ class ScaleVerification(LanguageModel):
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
 
-        if not allow_duplicates: 
-            equality_checker = Gemini2_flash(
-                temperature=1.5, structured=False
-            )
-        else: 
-            equality_checker = None 
+        if not allow_duplicates:
+            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+        else:
+            equality_checker = None
 
         def _set_env(var: str, pwd: str):
             if not os.environ.get(var):
@@ -621,12 +640,10 @@ class ScaleVerification(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {
-                "thread_id": "test_1",
-                "recursion_limit": 100},
+            "configurable": {"thread_id": "test_1", "recursion_limit": 100},
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
-            }
+        }
 
     def __call__(self, message_list: MessageList) -> str:
         counter = 1

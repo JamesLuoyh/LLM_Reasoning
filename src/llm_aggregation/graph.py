@@ -3,7 +3,7 @@ from typing import Any, Dict, List, TypedDict
 import numpy as np
 from langchain_core.runnables import RunnableConfig
 
-from evals.common import is_equiv, check_equality
+from evals.common import check_equality, is_equiv
 from evals.constants import INVALID_ANS
 from llm_aggregation.agents import generator, verifier, voter
 
@@ -67,11 +67,11 @@ def generate(state: State, *, config: RunnableConfig,
             reasonings.append(INVALID_ANS)
             solutions.append(INVALID_ANS)
 
-    if not configurable["allow_duplicates"]: # Remove duplicates from solutions
-        assert configurable["equality_checker"] is not None 
+    if not configurable["allow_duplicates"]:  # Remove duplicates from solutions
+        assert configurable["equality_checker"] is not None
         unique_solutions = []
         unique_reasonings = []
-        for index, solution in enumerate(solutions): 
+        for index, solution in enumerate(solutions):
             # remove invalid answers
             if solution == INVALID_ANS:
                 continue
@@ -82,10 +82,11 @@ def generate(state: State, *, config: RunnableConfig,
                 if is_equiv(unique_solution, solution):
                     duplicate_found = True
                     break
-                # Evaluate if the two solutions are equivalent using Gemini 
-                if check_equality(configurable["equality_checker"], unique_solution, solution):
+                # Evaluate if the two solutions are equivalent using Gemini
+                if check_equality(
+                        configurable["equality_checker"], unique_solution, solution):
                     duplicate_found = True
-                    break 
+                    break
             if not duplicate_found:
                 unique_solutions.append(solution)
                 unique_reasonings.append(reasonings[index])
