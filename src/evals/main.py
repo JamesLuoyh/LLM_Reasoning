@@ -31,6 +31,11 @@ def main():
         help="Select a model type by name",
     )
     parser.add_argument(
+        "--allow-duplicates",
+        action="store_true",
+        help="Allow duplicates in the generated solutions"
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="Run in debug mode")
@@ -55,17 +60,21 @@ def main():
         if args.model_type not in model_types:
             print(f"Model type {args.model_type} not found")
             return
-    
     model_structures = {
         # Baseline models
         "base_llama3": Llama3(temperature=0.7, num_predict=2048, structured=False),
         "ToT": ToT(temperature=0.7),
-        "majority_vote": MajorityVote(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
-        "borda_count": BordaCount(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
-        "best_of_n": BestOfN(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
-        "self_consistency": SelfConsistency(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
+        "majority_vote": MajorityVote(model_type=args.model_type, temperature=0.7, num_predict=2048, 
+                                      allow_duplicates=args.allow_duplicates, debug=args.debug),
+        "borda_count": BordaCount(model_type=args.model_type, temperature=0.7, num_predict=2048, 
+                                  allow_duplicates=args.allow_duplicates, debug=args.debug),
+        "best_of_n": BestOfN(model_type=args.model_type, temperature=0.7, num_predict=2048, 
+                             allow_duplicates=args.allow_duplicates, debug=args.debug),
+        "self_consistency": SelfConsistency(model_type=args.model_type, temperature=0.7, num_predict=2048, 
+                                            allow_duplicates=args.allow_duplicates, debug=args.debug),
         "gemini2_flash": Gemini2_flash(temperature=1.5),
-        "verification": ScaleVerification(model_type=args.model_type, temperature=0.7, num_predict=2048, debug=args.debug),
+        "verification": ScaleVerification(model_type=args.model_type, temperature=0.7, num_predict=2048, 
+                                          allow_duplicates=args.allow_duplicates, debug=args.debug),
     }
 
     if args.list_model_structures:
