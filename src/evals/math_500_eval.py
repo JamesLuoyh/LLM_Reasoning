@@ -54,11 +54,11 @@ class MathEval(Eval):
                         content=MATH_QUERY_TEMPLATE_WITHOUT_ANSWER_LINE.format(
                             **row), role="user")
                 ]
-            # try:
-            response_text = sampler(prompt_messages).content
-            # except Exception as e:
-            #     print(f"Error in model invocation: {e}")
-            #     response_text = ""
+            try:
+                response_text = sampler(prompt_messages).content
+            except Exception as e:
+                print(f"Error in model invocation: {e}")
+                response_text = ""
 
             if self.answer_format:
                 match = re.search(ANSWER_PATTERN, response_text)
