@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 
-from simple_llm_voting.objects import Generation, Verification, Vote
+from llm_aggregation.objects import Generation, Verification, Vote
 
 
 def generator(llm):
