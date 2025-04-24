@@ -49,6 +49,11 @@ def main():
         nargs="+",
         help="A list of examples from the dataset to test")
 
+    parser.add_argument(
+        "--n_repeats",
+        type=int,
+        help="Number of times to repeat per example")
+
     args = parser.parse_args()
 
     model_types = [
@@ -97,13 +102,19 @@ def main():
         num_examples = args.examples if args.examples is not None else (
             5 if debug_mode else None)
         # Set num_examples = None to reproduce full evals
+        n_repeats = 10
+        if args.n_repeats:
+            n_repeats = args.n_repeats
+        elif debug_mode or num_examples:
+            n_repeats = 1
+
         match eval_name:
             case "math":
                 return MathEval(
                     equality_checker=equality_checker,
                     num_examples=num_examples,
                     idx_examples=args.idx_examples,
-                    n_repeats=1 if debug_mode or num_examples else 10,
+                    n_repeats=n_repeats,
                     answer_format=True if args.model_structure.startswith(
                         "base") else False,
                 )

@@ -2,6 +2,7 @@ import os
 from functools import partial
 from typing import Any
 
+from google import genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 
@@ -20,6 +21,11 @@ def set_langsmith_env():
     _set_env("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
     _set_env("LANGSMITH_PROJECT", "pr-fixed-bottom-13")
     _set_env("LANGSMITH_API_KEY", "YOUR API KEY")
+
+
+def _set_env(var: str, pwd: str):
+    if not os.environ.get(var):
+        os.environ[var] = pwd  # getpass.getpass(f"{var}: ")
 
 
 os.environ["LANGSMITH_PROJECT"] = "ToT Tutorial"
@@ -47,7 +53,16 @@ class Gemini2_flash(LanguageModel):
             while generation is None and retries < self.max_retries:
                 generation = bound_llm.invoke(message_list)
                 retries += 1
-            return AggregatedSolutionWrapper(generation.solution)
+            client = genai.Client(api_key="YOUR API KEYS")
+            output_tokens = client.models.count_tokens(
+                model="gemini-2.0-flash-001", contents=[generation.solution, generation.reasoning]
+            ).total_tokens
+            input_tokens = client.models.count_tokens(
+                model="gemini-2.0-flash-001", contents=[item for m in message_list for item in m.values()]
+            ).total_tokens
+            return AggregatedSolutionWrapper(
+                generation.solution, output_tokens=output_tokens, input_tokens=input_tokens
+            )
 
         return self.model.invoke(message_list)
 

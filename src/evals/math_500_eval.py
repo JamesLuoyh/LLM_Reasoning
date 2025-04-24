@@ -13,8 +13,10 @@ from evals.constants import INVALID_ANS
 from evals.objects import Eval, EvalResult, LanguageModel, SingleEvalResult
 from evals.templates import MATH_QUERY_TEMPLATE, MATH_QUERY_TEMPLATE_WITHOUT_ANSWER_LINE
 
-# downloaded from https://openaipublic.blob.core.windows.net/simple-evals/math_500_test.csv
+# downloaded from
+# https://openaipublic.blob.core.windows.net/simple-evals/math_500_test.csv
 DATASET = "data/math_500_test.csv"
+
 
 class MathEval(Eval):
     def __init__(
@@ -25,19 +27,17 @@ class MathEval(Eval):
         n_repeats: int = 16,
         answer_format: bool = True,
     ):
-        
+
         df = pandas.read_csv(DATASET)
         examples = [row.to_dict() for _, row in df.iterrows()]
         if idx_examples is not None and len(idx_examples) > 0:
             self.examples = [examples[i] for i in idx_examples]
-            print(self.examples)
         else:
             if num_examples:
                 assert n_repeats == 1, "n_repeats only supported for num_examples = None"
                 rng = random.Random(0)
-                examples = rng.sample(examples, num_examples)
-            self.examples = examples * n_repeats
-        print(self.examples)
+                self.examples = rng.sample(examples, num_examples)
+        self.examples = self.examples * n_repeats
         self.equality_checker = equality_checker
         self.answer_format = answer_format
 
@@ -54,11 +54,14 @@ class MathEval(Eval):
                         content=MATH_QUERY_TEMPLATE_WITHOUT_ANSWER_LINE.format(
                             **row), role="user")
                 ]
-            try:
-                response_text = sampler(prompt_messages).content
-            except Exception as e:
-                print(f"Error in model invocation: {e}")
-                response_text = ""
+            # try:
+            response = sampler(prompt_messages)
+            response_text = response.content
+            input_tokens = response.input_tokens
+            output_tokens = response.output_tokens
+            # except Exception as e:
+            #     print(f"Error in model invocation: {e}")
+            #     response_text = ""
 
             if self.answer_format:
                 match = re.search(ANSWER_PATTERN, response_text)
@@ -71,7 +74,6 @@ class MathEval(Eval):
             score = common.is_equiv(target_answer, extracted_answer)
             if score < 1 and extracted_answer is not None and extracted_answer != INVALID_ANS:
                 # use gemini2 flash to double check
-                print("Here")
                 score = common.check_equality(
                     self.equality_checker, target_answer, extracted_answer)
                 print(score)
@@ -82,10 +84,14 @@ class MathEval(Eval):
                 score=score,
                 correct_answer=target_answer,
                 extracted_answer=extracted_answer,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
             )
             convo = prompt_messages + \
                 [dict(content=response_text, role="assistant")]
-            return SingleEvalResult(html=html, score=score, convo=convo)
+            return SingleEvalResult(
+                html=html, score=score, input_tokens=input_tokens, output_tokens=output_tokens, convo=convo
+            )
 
         results = common.map_with_progress(fn, self.examples)
         return common.aggregate_results(results)
