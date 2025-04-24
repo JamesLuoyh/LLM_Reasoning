@@ -361,6 +361,85 @@ class BordaCount(LanguageModel):
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}
 
+class BestOfN(LanguageModel):
+    def __init__(self, temperature: float = 0.7, num_predict: int = 2048,
+                 trace: bool = False, debug: bool = False):
+
+        self.llm = ChatOllama(
+            model="llama3.1",
+            temperature=temperature,
+            num_predict=num_predict)
+        self.debug = debug
+        # llm = ChatOllama(model="llama3-groq-tool-use")
+        # llm = ChatOpenAI(model="gpt-4o-mini")
+
+        def _set_env(var: str, pwd: str):
+            if not os.environ.get(var):
+                os.environ[var] = pwd  # getpass.getpass(f"{var}: ")
+
+        # _set_env("OPENAI_API_KEY", "YOUR API KEY")
+        # To visualize the algorithm
+        if trace:
+            set_langsmith_env()
+
+        self.builder = StateGraph(
+            state_schema=aggregation_graph.State,
+            config_schema=aggregation_graph.Configuration)
+        # Add nodes
+        self.builder.add_node(
+            "generate",
+            partial(
+                aggregation_graph.generate,
+                llm=self.llm,
+                debug=self.debug))
+        self.builder.add_node(
+            "vote",
+            partial(
+                aggregation_graph.vote,
+                llm=self.llm,
+                debug=self.debug))
+        
+        self.builder.add_node("aggregate", partial(aggregation_graph.best_of_n, 
+                                                   debug=self.debug))
+
+        # Add edges
+        self.builder.add_edge("generate", "vote")
+        self.builder.add_edge("vote", "aggregate")
+        self.builder.add_edge("aggregate", "__end__")
+
+        # Set entry point
+        self.builder.add_edge("__start__", "generate")
+
+        # Compile the graph
+        self.graph = self.builder.compile(checkpointer=MemorySaver())
+
+        self.config = {
+            "configurable": {
+                "thread_id": "test_1",
+                "recursion_limit": 100},
+            "n_voters": 1,
+        }
+
+    def __call__(self, message_list: MessageList) -> str:
+        counter = 1
+        assert len(message_list) == 1 and message_list[0]["content"]
+        for step in self.graph.invoke(
+                {"problem": message_list[0]["content"]}, config=self.config):
+            if self.debug:
+                print("step", counter, step)
+            counter += 1
+
+        final_state = self.graph.get_state(self.config)
+        aggregated_solution = final_state.values["aggregated_solution"]
+        if self.debug:
+            print(f"Found a solution: {aggregated_solution}")
+
+        aggregated_solution = AggregatedSolutionWrapper(aggregated_solution)
+        return aggregated_solution
+
+    def _pack_message(self, role: str, content: Any):
+        return {"role": str(role), "content": content}
+
 
 class ScaleVerification(LanguageModel):
     def __init__(self, temperature: float = 0.7, num_predict: int = 2048,

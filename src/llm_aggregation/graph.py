@@ -28,7 +28,7 @@ def _ensure_configurable(config: RunnableConfig) -> Configuration:
     return {
         **configurable,
         "n_generators": configurable.get("n_generators", 5),
-        "n_voters": configurable.get("n_voters", 1),
+        "n_voters": configurable.get("n_voters", 5),
         "n_verifiers": configurable.get("n_verifiers", 5),
         "retries": configurable.get("retries", 5),
     }
@@ -105,42 +105,66 @@ def vote(state: State, *, config: RunnableConfig,
     return {"preferences": preferences}
 
 
-def majority_vote(state: State) -> Dict[str, Any]:
+def majority_vote(state: State, config: RunnableConfig) -> Dict[str, Any]:
     """Majority vote on the generated solutions."""
+    configurable = _ensure_configurable(config)
 
     preferences = state["preferences"]
     if not preferences:
         return {"aggregated_solution": ""}
-    n_generators = len(preferences[0])
+    
+    n_generators = configurable["n_generators"]    
     votes = [0] * n_generators
     for preference in preferences:
-        votes[preference[0]] += 1
+        if preference:
+            votes[preference[0]] += 1
 
     majority_vote_index = votes.index(max(votes))
     return {"aggregated_solution": state["solutions"][majority_vote_index]}
 
-def borda_count(state: State, debug: bool = False) -> Dict[str, Any]:
+def borda_count(state: State, 
+                config: RunnableConfig, 
+                debug: bool = False) -> Dict[str, Any]:
     "Borda count on the generated solutions."
 
+    configurable = _ensure_configurable(config)
     preferences = state["preferences"]
-    print(preferences)
+    print("preference: ", preferences)
     if not preferences:
         return {"aggregated_solution": ""}
     
-    n_generators = len(preferences[0])
-    borda_counts = {i: 0 for i in range(len(n_generators))}
+    n_generators = configurable["n_generators"] 
+    print("n_generators ", n_generators)   
+    borda_counts = {i: 0 for i in range(n_generators)}
     for preference in preferences: 
-        for i, rank in enumerate(preference):
-            borda_counts[rank] += n_generators - i - 1
+        if preference:
+            for i, rank in enumerate(preference):
+                borda_counts[rank] += n_generators - i - 1
         
     # Find the solution with the highest Borda count
     max_key = max(borda_counts, key=borda_counts.get)
 
     if debug: 
+        print("preferences: ", preferences)
         print("borda_count: ", borda_counts)
         print("max_key: ", max_key)
         print("aggregated_solution: ", state["solutions"][max_key])
     return {"aggregated_solution": state["solutions"][max_key]}
+
+def best_of_n(state: State, debug: bool = False) -> Dict[str, Any]:
+    """Best of n on the generated solutions."""
+    assert len(state["preferences"]) == 1
+
+    if not state["preferences"]:
+        return {"aggregated_solution": ""}
+    
+    best_of_n_index = state["preferences"][0][0]
+
+    if debug: 
+        print("best_of_n: ", best_of_n_index)
+        print("aggregated_solution: ", state["solutions"][best_of_n_index])
+
+    return {"aggregated_solution": state["solutions"][best_of_n_index]}
 
 def self_consistency(state: State) -> Dict[str, Any]:
     """Output the most common final answer among generators."""

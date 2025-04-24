@@ -42,6 +42,7 @@ def main():
         "ToT": ToT(temperature=0.7),
         "majority_vote": MajorityVote(temperature=0.7, num_predict=2048, debug=args.debug),
         "borda_count": BordaCount(temperature=0.7, num_predict=2048, debug=args.debug),
+        "best_of_n": BestOfN(temperature=0.7, num_predict=2048, debug=args.debug),
         "self_consistency": SelfConsistency(temperature=0.7, num_predict=2048, debug=args.debug),
         "gemini2_flash": Gemini2_flash(temperature=1.5),
         "verification": ScaleVerification(temperature=0.7, num_predict=2048, debug=args.debug),
