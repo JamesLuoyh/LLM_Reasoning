@@ -1,10 +1,13 @@
+import operator
 from typing import Any, Dict, List, TypedDict
 
 import numpy as np
 from langchain_core.runnables import RunnableConfig
+from typing_extensions import Annotated
 
 from evals.common import check_equality, is_equiv
 from evals.constants import INVALID_ANS
+from evals.objects import count_tokens
 from llm_aggregation.agents import generator, verifier, voter
 
 
@@ -15,6 +18,8 @@ class State(TypedDict):
     preferences: List[List[int]]
     aggregated_solution: str
     scores: List[int]
+    input_tokens: Annotated[int, operator.add]
+    output_tokens: Annotated[int, operator.add]
 
 
 class Configuration(TypedDict):
@@ -26,6 +31,7 @@ class Configuration(TypedDict):
 def _ensure_configurable(config: RunnableConfig) -> Configuration:
     """Get params that configure the search algorithm."""
     configurable = config.get("configurable", {})
+
     return {
         **configurable,
         "n_generators": configurable.get("n_generators", 5),
@@ -44,6 +50,9 @@ def generate(state: State, *, config: RunnableConfig,
     solutions = []
     if debug:
         print(state["problem"])
+    input_tokens = count_tokens(
+        [state["problem"]]) * configurable["n_generators"]
+    output_tokens = 0
     for i in range(configurable["n_generators"]):
         generation = None
         retries = 0
@@ -63,10 +72,11 @@ def generate(state: State, *, config: RunnableConfig,
         if generation:
             reasonings.append(generation.reasoning)
             solutions.append(generation.solution)
+            output_tokens += count_tokens([generation.reasoning,
+                                          generation.solution, generation.scratch])
         else:
             reasonings.append(INVALID_ANS)
             solutions.append(INVALID_ANS)
-
     if not configurable["allow_duplicates"]:  # Remove duplicates from solutions
         assert configurable["equality_checker"] is not None
         unique_solutions = []
@@ -93,8 +103,15 @@ def generate(state: State, *, config: RunnableConfig,
 
         solutions = unique_solutions
         reasonings = unique_reasonings
-
-    return {"reasonings": reasonings, "solutions": solutions}
+    if debug:
+        print("input_tokens:", input_tokens)
+        print("output_tokens:", output_tokens)
+    return {
+        "reasonings": reasonings,
+        "solutions": solutions,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+    }
 
 
 def vote(state: State, *, config: RunnableConfig,
@@ -103,6 +120,11 @@ def vote(state: State, *, config: RunnableConfig,
     configurable = _ensure_configurable(config)
 
     preferences = []
+    input_tokens = (
+        count_tokens([state["problem"]] + state["reasonings"] +
+                     state["solutions"]) * configurable["n_voters"]
+    )
+    output_tokens = 0
     for i in range(configurable["n_voters"]):
         vote = None
         retries = 0
@@ -127,10 +149,15 @@ def vote(state: State, *, config: RunnableConfig,
                 print("vote():", i, vote)
         if vote:
             preferences.append(vote.preference)
+            output_tokens += count_tokens(
+                [", ".join(map(str, vote.preference)), vote.explanation, vote.scratch])
         else:
             preferences.append(None)
-
-    return {"preferences": preferences}
+    if debug:
+        print("input_tokens:", input_tokens)
+        print("output_tokens:", output_tokens)
+    return {"preferences": preferences,
+            "input_tokens": input_tokens, "output_tokens": output_tokens}
 
 
 def majority_vote(state: State, config: RunnableConfig) -> Dict[str, Any]:
@@ -162,7 +189,6 @@ def borda_count(state: State, config: RunnableConfig,
         return {"aggregated_solution": ""}
 
     n_generators = len(state["solutions"])
-    print("n_generators ", n_generators)
     borda_counts = {i: 0 for i in range(n_generators)}
     for preference in preferences:
         if preference:
@@ -225,6 +251,12 @@ def verifications(state: State, *, config: RunnableConfig,
     solutions = state["solutions"]
     configurable = _ensure_configurable(config)
     scores = [0] * len(solutions)
+
+    input_tokens = (
+        count_tokens([state["problem"]] + state["reasonings"] +
+                     state["solutions"]) * configurable["n_verifiers"]
+    )
+    output_tokens = 0
     for i, solution in enumerate(solutions):
         for j in range(configurable["n_verifiers"]):
             verification = None
@@ -244,7 +276,13 @@ def verifications(state: State, *, config: RunnableConfig,
                     print("verifications():", i, verification)
             if verification and verification.correct:
                 scores[i] += 1
-    return {"scores": scores}
+            output_tokens += count_tokens(
+                [verification.verification_steps, verification.scratch]) + 1
+    if debug:
+        print("input_tokens:", input_tokens)
+        print("output_tokens:", output_tokens)
+    return {"scores": scores, "input_tokens": input_tokens,
+            "output_tokens": output_tokens}
 
 
 def aggregate_verifications(state: State) -> Dict[str, Any]:

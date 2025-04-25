@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, field_validator
 class Generation(BaseModel):
     """The output of the reasoning agent."""
 
+    scratch: str = Field(
+        description="Use this space for making drafts or providing additional comments.")
     reasoning: str = Field(
         description="The reasoning behind the solution. There is no limit to the reasoning steps. Think as thoroughly as possible."
     )
@@ -24,6 +26,10 @@ class Generation(BaseModel):
 class Vote(BaseModel):
     """Submit the vote of the proposed reasonings and solutions."""
 
+    scratch: str = Field(
+        description="Use this space for making drafts or providing additional comments.")
+    explanation: str = Field(
+        description="Show your explanation for why the following preference rank is given.")
     preference: List[int] = Field(
         description="Rank your prefereces of the generations in a list of indices. The most preferred appears first."
     )
@@ -32,6 +38,8 @@ class Vote(BaseModel):
 class Verification(BaseModel):
     """Submit the vote of the proposed reasonings and solutions."""
 
+    scratch: str = Field(
+        description="Use this space for making drafts or providing additional comments.")
     verification_steps: str = Field(
         description="The verification steps for verifying the solution.")
 

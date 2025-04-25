@@ -28,6 +28,7 @@ def main():
     parser.add_argument(
         "--model-type",
         type=str,
+        default="gemini2_flash",
         help="Select a model type by name",
     )
     parser.add_argument(

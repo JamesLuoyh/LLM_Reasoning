@@ -2,12 +2,19 @@ import os
 from functools import partial
 from typing import Any
 
-from google import genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 
 import llm_aggregation.graph as aggregation_graph
-from evals.objects import AggregatedSolutionWrapper, Answer, LanguageModel, MessageList
+from evals.objects import (
+    GEMINI2_FLASH,
+    GEMINI_API_KEY,
+    AggregatedSolutionWrapper,
+    Answer,
+    LanguageModel,
+    MessageList,
+    count_tokens,
+)
 from llm_aggregation.objects import Generation
 from llm_reasoning.graph import *
 
@@ -35,12 +42,12 @@ class Gemini2_flash(LanguageModel):
     def __init__(self, temperature: float = 1.5, num_predict: int = 2048,
                  structured: bool = True, max_retries=2):
         self.model = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-001",
+            model=GEMINI2_FLASH,
             temperature=temperature,
             max_tokens=None,
             timeout=None,
             max_retries=max_retries,
-            google_api_key="YOUR API KEY",
+            google_api_key=GEMINI_API_KEY,
         )
         self.structured = structured
         self.max_retries = max_retries
@@ -53,13 +60,10 @@ class Gemini2_flash(LanguageModel):
             while generation is None and retries < self.max_retries:
                 generation = bound_llm.invoke(message_list)
                 retries += 1
-            client = genai.Client(api_key="YOUR API KEYS")
-            output_tokens = client.models.count_tokens(
-                model="gemini-2.0-flash-001", contents=[generation.solution, generation.reasoning]
-            ).total_tokens
-            input_tokens = client.models.count_tokens(
-                model="gemini-2.0-flash-001", contents=[item for m in message_list for item in m.values()]
-            ).total_tokens
+            output_tokens = count_tokens(
+                [generation.solution, generation.reasoning, generation.scratch])
+            input_tokens = count_tokens(
+                [item for m in message_list for item in m.values()])
             return AggregatedSolutionWrapper(
                 generation.solution, output_tokens=output_tokens, input_tokens=input_tokens
             )
@@ -96,12 +100,7 @@ class ToT(LanguageModel):
     def __init__(self, temperature: float = 0.7, trace=False):
 
         self.llm = ChatOllama(model="llama3.1")
-        # llm = ChatOllama(model="llama3-groq-tool-use")
-        # llm = ChatOpenAI(model="gpt-4o-mini")
 
-        # getpass.getpass(f"{var}: ")
-
-        # _set_env("OPENAI_API_KEY", "YOUR API KEY")
         # To visualize the algorithm
         if trace:
             set_langsmith_env()
@@ -131,7 +130,7 @@ class ToT(LanguageModel):
 
         self.config = {
             "configurable": {
-                "thread_id": "test_1",
+                "thread_id": "tree_of_thought",
                 "max_depth": 10,
                 "recursion_limit": 100}}
 
@@ -167,9 +166,10 @@ class SelfConsistency(LanguageModel):
         allow_duplicates: bool = True,
         trace: bool = False,
         debug: bool = False,
+        n_generators: int = 5,
     ):
 
-        self.select_model_type(model_type, temperature, num_predict)
+        self.llm = self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
@@ -177,14 +177,6 @@ class SelfConsistency(LanguageModel):
         else:
             equality_checker = None
 
-        # llm = ChatOllama(model="llama3-groq-tool-use")
-        # llm = ChatOpenAI(model="gpt-4o-mini")
-
-        def _set_env(var: str, pwd: str):
-            if not os.environ.get(var):
-                os.environ[var] = pwd  # getpass.getpass(f"{var}: ")
-
-        # _set_env("OPENAI_API_KEY", "YOUR API KEY")
         # To visualize the algorithm
         if trace:
             set_langsmith_env()
@@ -217,6 +209,7 @@ class SelfConsistency(LanguageModel):
             "configurable": {"thread_id": "self_consistency", "recursion_limit": 100},
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
+            "n_generators": n_generators,
         }
 
     def __call__(self, message_list: MessageList) -> str:
@@ -233,8 +226,11 @@ class SelfConsistency(LanguageModel):
         if self.debug:
             print(f"Found a solution: {aggregated_solution}")
 
-        aggregated_solution = AggregatedSolutionWrapper(aggregated_solution)
-        return aggregated_solution
+        return AggregatedSolutionWrapper(
+            aggregated_solution,
+            output_tokens=final_state.values["output_tokens"],
+            input_tokens=final_state.values["input_tokens"],
+        )
 
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}
@@ -249,9 +245,10 @@ class MajorityVote(LanguageModel):
         allow_duplicates: bool = True,
         trace: bool = False,
         debug: bool = False,
+        n_generators: int = 5,
     ):
 
-        self.select_model_type(model_type, temperature, num_predict)
+        self.llm = self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
@@ -259,14 +256,6 @@ class MajorityVote(LanguageModel):
         else:
             equality_checker = None
 
-        # llm = ChatOllama(model="llama3-groq-tool-use")
-        # llm = ChatOpenAI(model="gpt-4o-mini")
-
-        def _set_env(var: str, pwd: str):
-            if not os.environ.get(var):
-                os.environ[var] = pwd  # getpass.getpass(f"{var}: ")
-
-        # _set_env("OPENAI_API_KEY", "YOUR API KEY")
         # To visualize the algorithm
         if trace:
             set_langsmith_env()
@@ -303,9 +292,10 @@ class MajorityVote(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {"thread_id": "test_1", "recursion_limit": 100},
+            "configurable": {"thread_id": "majority_vote", "recursion_limit": 100},
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
+            "n_generators": n_generators,
         }
 
     def __call__(self, message_list: MessageList) -> str:
@@ -321,9 +311,11 @@ class MajorityVote(LanguageModel):
         aggregated_solution = final_state.values["aggregated_solution"]
         if self.debug:
             print(f"Found a solution: {aggregated_solution}")
-
-        aggregated_solution = AggregatedSolutionWrapper(aggregated_solution)
-        return aggregated_solution
+        return AggregatedSolutionWrapper(
+            aggregated_solution,
+            output_tokens=final_state.values["output_tokens"],
+            input_tokens=final_state.values["input_tokens"],
+        )
 
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}
@@ -338,9 +330,10 @@ class BordaCount(LanguageModel):
         allow_duplicates: bool = True,
         trace: bool = False,
         debug: bool = False,
+        n_generators: int = 5,
     ):
 
-        self.select_model_type(model_type, temperature, num_predict)
+        self.llm = self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
@@ -348,14 +341,6 @@ class BordaCount(LanguageModel):
         else:
             equality_checker = None
 
-        # llm = ChatOllama(model="llama3-groq-tool-use")
-        # llm = ChatOpenAI(model="gpt-4o-mini")
-
-        def _set_env(var: str, pwd: str):
-            if not os.environ.get(var):
-                os.environ[var] = pwd  # getpass.getpass(f"{var}: ")
-
-        # _set_env("OPENAI_API_KEY", "YOUR API KEY")
         # To visualize the algorithm
         if trace:
             set_langsmith_env()
@@ -394,9 +379,10 @@ class BordaCount(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {"thread_id": "test_1", "recursion_limit": 100},
+            "configurable": {"thread_id": "borda_count", "recursion_limit": 100},
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
+            "n_generators": n_generators,
         }
 
     def __call__(self, message_list: MessageList) -> str:
@@ -413,8 +399,11 @@ class BordaCount(LanguageModel):
         if self.debug:
             print(f"Found a solution: {aggregated_solution}")
 
-        aggregated_solution = AggregatedSolutionWrapper(aggregated_solution)
-        return aggregated_solution
+        return AggregatedSolutionWrapper(
+            aggregated_solution,
+            output_tokens=final_state.values["output_tokens"],
+            input_tokens=final_state.values["input_tokens"],
+        )
 
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}
@@ -429,9 +418,10 @@ class BestOfN(LanguageModel):
         allow_duplicates: bool = True,
         trace: bool = False,
         debug: bool = False,
+        n_generators: int = 5,
     ):
 
-        self.select_model_type(model_type, temperature, num_predict)
+        self.llm = self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
@@ -439,14 +429,6 @@ class BestOfN(LanguageModel):
         else:
             equality_checker = None
 
-        # llm = ChatOllama(model="llama3-groq-tool-use")
-        # llm = ChatOpenAI(model="gpt-4o-mini")
-
-        def _set_env(var: str, pwd: str):
-            if not os.environ.get(var):
-                os.environ[var] = pwd  # getpass.getpass(f"{var}: ")
-
-        # _set_env("OPENAI_API_KEY", "YOUR API KEY")
         # To visualize the algorithm
         if trace:
             set_langsmith_env()
@@ -486,10 +468,11 @@ class BestOfN(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {"thread_id": "test_1", "recursion_limit": 100},
+            "configurable": {"thread_id": "best_of_n", "recursion_limit": 100},
             "n_voters": 1,
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
+            "n_generators": n_generators,
         }
 
     def __call__(self, message_list: MessageList) -> str:
@@ -506,8 +489,11 @@ class BestOfN(LanguageModel):
         if self.debug:
             print(f"Found a solution: {aggregated_solution}")
 
-        aggregated_solution = AggregatedSolutionWrapper(aggregated_solution)
-        return aggregated_solution
+        return AggregatedSolutionWrapper(
+            aggregated_solution,
+            output_tokens=final_state.values["output_tokens"],
+            input_tokens=final_state.values["input_tokens"],
+        )
 
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}
@@ -522,9 +508,10 @@ class ScaleVerification(LanguageModel):
         allow_duplicates: bool = True,
         trace: bool = False,
         debug: bool = False,
+        n_generators: int = 5,
     ):
 
-        self.select_model_type(model_type, temperature, num_predict)
+        self.llm = self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
@@ -534,11 +521,6 @@ class ScaleVerification(LanguageModel):
         else:
             equality_checker = None
 
-        def _set_env(var: str, pwd: str):
-            if not os.environ.get(var):
-                os.environ[var] = pwd  # getpass.getpass(f"{var}: ")
-
-        # _set_env("OPENAI_API_KEY", "YOUR API KEY")
         # To visualize the algorithm
         if trace:
             set_langsmith_env()
@@ -575,9 +557,13 @@ class ScaleVerification(LanguageModel):
         self.graph = self.builder.compile(checkpointer=MemorySaver())
 
         self.config = {
-            "configurable": {"thread_id": "test_1", "recursion_limit": 100},
+            "configurable": {
+                "thread_id": "scale_verification",
+                "recursion_limit": 100,
+            },
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
+            "n_generators": n_generators,
         }
 
     def __call__(self, message_list: MessageList) -> str:
@@ -594,8 +580,11 @@ class ScaleVerification(LanguageModel):
         if self.debug:
             print(f"Found a solution: {aggregated_solution}")
 
-        aggregated_solution = AggregatedSolutionWrapper(aggregated_solution)
-        return aggregated_solution
+        return AggregatedSolutionWrapper(
+            aggregated_solution,
+            output_tokens=final_state.values["output_tokens"],
+            input_tokens=final_state.values["input_tokens"],
+        )
 
     def _pack_message(self, role: str, content: Any):
         return {"role": str(role), "content": content}

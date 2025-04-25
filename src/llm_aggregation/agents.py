@@ -19,7 +19,9 @@ def generator(llm):
                 "{{"
                 '  "reasoning": "First, I identified the numbers. Then, I added them together.", '
                 '  "solution": "4"'
-                "}}",
+                "}}"
+                "Respond ONLY with a valid JSON object. DO NOT output tokens outside of the provided fields as they will be ignored."
+                "Use the 'scratch' field provided for any additional commentary or explanation.",
             ),
             (
                 "user",
@@ -53,7 +55,9 @@ def voter(llm):
                 "- Correctness: Is the solution correct and does the reasoning logically lead to the solution? "
                 "- Clarity: Is the reasoning easy to understand and free of ambiguity? "
                 "- Logical Coherence: Does the reasoning follow a clear and logical progression? "
-                "Provide a justification for each ranking based on these criteria.",
+                "Provide a justification for each ranking based on these criteria."
+                "Respond ONLY with a valid JSON object. DO NOT output tokens outside of the provided fields as they will be ignored."
+                "Use the 'scratch' field provided for any additional commentary or explanation.",
             ),
             (
                 "user",
@@ -73,7 +77,9 @@ def verifier(llm):
         [
             (
                 "system",
-                'An examiner has presented a math problem along with a "candidate solution". Your purpose is to assist in evaluating whether the *final answer* in the candidate solution is correct. ',
+                'An examiner has presented a math problem along with a "candidate solution". Your purpose is to assist in evaluating whether the *final answer* in the candidate solution is correct. '
+                "Respond ONLY with a valid JSON object. DO NOT output tokens outside of the provided fields as they will be ignored."
+                "Use the 'scratch' field provided for any additional commentary or explanation.",
             ),
             (
                 "user",

@@ -2,6 +2,7 @@
 # Source: https://github.com/openai/simple-evals/
 # Licensed under the MIT License
 
+from google import genai
 from typing import Any
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,6 +11,15 @@ from pydantic import BaseModel, Field
 
 Message = dict[str, Any]
 MessageList = list[Message]
+
+GEMINI_API_KEY = "YOUR API KEY"
+GEMINI2_FLASH = "gemini-2.0-flash-001"
+
+
+def count_tokens(contents: list):
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    return client.models.count_tokens(
+        model=GEMINI2_FLASH, contents=contents).total_tokens
 
 
 class LanguageModel:
@@ -22,20 +32,18 @@ class LanguageModel:
         raise NotImplementedError
 
     def select_model_type(self, model_type: str,
-                          temperature: float, num_predict: int) -> None:
+                          temperature: float, num_predict: int) -> Any:
         if model_type == "llama3":
-            self.llm = ChatOllama(
-                model="llama3.1",
-                temperature=temperature,
-                num_predict=num_predict)
+            return ChatOllama(model="llama3.1",
+                              temperature=temperature, num_predict=num_predict)
         elif model_type == "gemini2_flash":
-            self.llm = ChatGoogleGenerativeAI(
+            return ChatGoogleGenerativeAI(
                 model="gemini-2.0-flash",
                 temperature=temperature,
                 max_tokens=num_predict,
                 timeout=None,
                 max_retries=2,
-                google_api_key="YOUR API KEY",
+                google_api_key=GEMINI_API_KEY,
             )
 
 
@@ -48,9 +56,9 @@ class EvalResult(BaseModel):
     metrics: dict[str, float] | None = Field(description="other metrics")
     htmls: list[str] = Field(description="strings of valid html")
     convos: list[MessageList] = Field(description="sampled conversations")
-    input_tokens: int | None = Field(
+    input_tokens: float | None = Field(
         description="number of input prompt tokens in total")
-    output_tokens: int | None = Field(
+    output_tokens: float | None = Field(
         description="number of output prompt tokens in total")
 
 
