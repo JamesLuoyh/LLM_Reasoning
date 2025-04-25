@@ -169,20 +169,7 @@ class SelfConsistency(LanguageModel):
         debug: bool = False,
     ):
 
-        if model_type == "llama3":
-            self.llm = ChatOllama(
-                model="llama3.1",
-                temperature=temperature,
-                num_predict=num_predict)
-        elif model_type == "gemini2_flash":
-            self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                temperature=temperature,
-                max_tokens=num_predict,
-                timeout=None,
-                max_retries=2,
-                google_api_key="YOUR API KEY",
-            )
+        self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
@@ -264,20 +251,7 @@ class MajorityVote(LanguageModel):
         debug: bool = False,
     ):
 
-        if model_type == "llama3":
-            self.llm = ChatOllama(
-                model="llama3.1",
-                temperature=temperature,
-                num_predict=num_predict)
-        elif model_type == "gemini2_flash":
-            self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                temperature=temperature,
-                max_tokens=num_predict,
-                timeout=None,
-                max_retries=2,
-                google_api_key="YOUR API KEY",
-            )
+        self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
@@ -366,20 +340,7 @@ class BordaCount(LanguageModel):
         debug: bool = False,
     ):
 
-        if model_type == "llama3":
-            self.llm = ChatOllama(
-                model="llama3.1",
-                temperature=temperature,
-                num_predict=num_predict)
-        elif model_type == "gemini2_flash":
-            self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                temperature=temperature,
-                max_tokens=num_predict,
-                timeout=None,
-                max_retries=2,
-                google_api_key="YOUR API KEY",
-            )
+        self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
@@ -470,20 +431,7 @@ class BestOfN(LanguageModel):
         debug: bool = False,
     ):
 
-        if model_type == "llama3":
-            self.llm = ChatOllama(
-                model="llama3.1",
-                temperature=temperature,
-                num_predict=num_predict)
-        elif model_type == "gemini2_flash":
-            self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                temperature=temperature,
-                max_tokens=num_predict,
-                timeout=None,
-                max_retries=2,
-                google_api_key="YOUR API KEY",
-            )
+        self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
@@ -576,20 +524,7 @@ class ScaleVerification(LanguageModel):
         debug: bool = False,
     ):
 
-        if model_type == "llama3":
-            self.llm = ChatOllama(
-                model="llama3.1",
-                temperature=temperature,
-                num_predict=num_predict)
-        elif model_type == "gemini2_flash":
-            self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                temperature=temperature,
-                max_tokens=num_predict,
-                timeout=None,
-                max_retries=2,
-                google_api_key="YOUR API KEY",
-            )
+        self.select_model_type(model_type, temperature, num_predict)
         self.debug = debug
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
