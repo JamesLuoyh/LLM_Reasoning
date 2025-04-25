@@ -3,7 +3,7 @@ from typing import Any, Dict, List, TypedDict
 import numpy as np
 from langchain_core.runnables import RunnableConfig
 
-from evals.common import is_equiv
+from evals.common import check_equality, is_equiv
 from evals.constants import INVALID_ANS
 from llm_aggregation.agents import generator, verifier, voter
 
@@ -67,6 +67,33 @@ def generate(state: State, *, config: RunnableConfig,
             reasonings.append(INVALID_ANS)
             solutions.append(INVALID_ANS)
 
+    if not configurable["allow_duplicates"]:  # Remove duplicates from solutions
+        assert configurable["equality_checker"] is not None
+        unique_solutions = []
+        unique_reasonings = []
+        for index, solution in enumerate(solutions):
+            # remove invalid answers
+            if solution == INVALID_ANS:
+                continue
+            # remove duplicates
+            duplicate_found = False
+            for unique_solution in unique_solutions:
+                # Evaluate if the two solutions are equivalent using is_equiv
+                if is_equiv(unique_solution, solution):
+                    duplicate_found = True
+                    break
+                # Evaluate if the two solutions are equivalent using Gemini
+                if check_equality(
+                        configurable["equality_checker"], unique_solution, solution):
+                    duplicate_found = True
+                    break
+            if not duplicate_found:
+                unique_solutions.append(solution)
+                unique_reasonings.append(reasonings[index])
+
+        solutions = unique_solutions
+        reasonings = unique_reasonings
+
     return {"reasonings": reasonings, "solutions": solutions}
 
 
@@ -89,7 +116,7 @@ def vote(state: State, *, config: RunnableConfig,
                         "problem": state["problem"],
                         "reasonings": state["reasonings"],
                         "solutions": state["solutions"],
-                        "n_generators": configurable["n_generators"],
+                        "n_generators": len(state["solutions"]),
                     },
                     config=config,
                 )
@@ -114,7 +141,7 @@ def majority_vote(state: State, config: RunnableConfig) -> Dict[str, Any]:
     if not preferences:
         return {"aggregated_solution": ""}
 
-    n_generators = configurable["n_generators"]
+    n_generators = len(state["solutions"])
     votes = [0] * n_generators
     for preference in preferences:
         if preference:
@@ -134,7 +161,7 @@ def borda_count(state: State, config: RunnableConfig,
     if not preferences:
         return {"aggregated_solution": ""}
 
-    n_generators = configurable["n_generators"]
+    n_generators = len(state["solutions"])
     print("n_generators ", n_generators)
     borda_counts = {i: 0 for i in range(n_generators)}
     for preference in preferences:

@@ -4,6 +4,8 @@
 
 from typing import Any
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from pydantic import BaseModel, Field
 
 Message = dict[str, Any]
@@ -18,6 +20,23 @@ class LanguageModel:
     # Invokes model with message_list
     def __call__(self, message_list: MessageList) -> str:
         raise NotImplementedError
+
+    def select_model_type(self, model_type: str,
+                          temperature: float, num_predict: int) -> None:
+        if model_type == "llama3":
+            self.llm = ChatOllama(
+                model="llama3.1",
+                temperature=temperature,
+                num_predict=num_predict)
+        elif model_type == "gemini2_flash":
+            self.llm = ChatGoogleGenerativeAI(
+                model="gemini-2.0-flash",
+                temperature=temperature,
+                max_tokens=num_predict,
+                timeout=None,
+                max_retries=2,
+                google_api_key="YOUR API KEY",
+            )
 
 
 class EvalResult(BaseModel):
