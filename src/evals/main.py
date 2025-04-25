@@ -5,8 +5,10 @@
 import argparse
 import json
 import os
+import random
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 
 from evals import common
@@ -33,7 +35,7 @@ def main():
     )
     parser.add_argument(
         "--allow-duplicates",
-        action="store_true",
+        action="store_false",
         help="Allow duplicates in the generated solutions")
     parser.add_argument(
         "--debug",
@@ -54,8 +56,22 @@ def main():
         type=int,
         help="Number of times to repeat per example")
 
+    parser.add_argument(
+        "--verifier_temperature", type=float, default=0.7, help="The temperature of the verifiers or voters"
+    )
+
+    parser.add_argument(
+        "--n_verifiers",
+        type=int,
+        default=5,
+        help="The number of verifiers")
+
+    parser.add_argument("--seed", type=int, default=5, help="The random seed")
+
     args = parser.parse_args()
 
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     model_types = ["llama3", "gemini2_flash"]
 
     if args.model_type:
@@ -79,6 +95,8 @@ def main():
             num_predict=2048,
             allow_duplicates=args.allow_duplicates,
             debug=args.debug,
+            verifier_temperature=args.verifier_temperature,
+            n_verifiers=args.n_verifiers,
         ),
         "best_of_n": BestOfN(
             model_type=args.model_type,
@@ -101,6 +119,8 @@ def main():
             num_predict=2048,
             allow_duplicates=args.allow_duplicates,
             debug=args.debug,
+            verifier_temperature=args.verifier_temperature,
+            n_verifiers=args.n_verifiers,
         ),
     }
 
@@ -159,7 +179,11 @@ def main():
         for eval_name, eval_obj in evals.items():
             result = eval_obj(sampler)
             # ^^^ how to use a sampler
-            file_stem = f"{eval_name}_{model_name}"
+            file_stem = (
+                f"{eval_name}_{model_name}_ng_5_gtemp_0.7_nv_{
+                    args.n_verifiers}_vtemp_{
+                    args.verifier_temperature}"
+            )
             dateTimeObj = datetime.now()
             date = dateTimeObj.strftime("_%m_%d_%H_%M_%S")
             report_filename = f"/{root_report_foldername}/{file_stem}{debug_suffix}{date}.html"

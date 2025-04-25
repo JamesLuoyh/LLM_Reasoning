@@ -2,9 +2,9 @@
 # Source: https://github.com/openai/simple-evals/
 # Licensed under the MIT License
 
-from google import genai
 from typing import Any
 
+from google import genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel, Field
@@ -52,7 +52,7 @@ class EvalResult(BaseModel):
     Result of running an evaluation (usually consisting of many samples)
     """
 
-    score: float | None = Field(description="top-line metric")
+    score: list[float] | None = Field(description="top-line metric")
     metrics: dict[str, float] | None = Field(description="other metrics")
     htmls: list[str] = Field(description="strings of valid html")
     convos: list[MessageList] = Field(description="sampled conversations")
@@ -67,7 +67,7 @@ class SingleEvalResult(BaseModel):
     Result of evaluating a single sample
     """
 
-    score: float | None = Field(description="top-line metric")
+    score: list[float] | None = Field(description="top-line metric")
     metrics: dict[str, float] = Field(
         description="other metrics", default_factory=dict)
     html: str | None = None

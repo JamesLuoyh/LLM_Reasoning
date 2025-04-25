@@ -31,7 +31,7 @@ HTML_JINJA = """
 <h3>Results</h3>
 <p>Correct Answer: {{ correct_answer }}</p>
 <p>Extracted Answer: {{ extracted_answer }}</p>
-<p>Score: {{ score }}</p>
+<p>Scores: {{ score }}</p>
 <p>Input tokens: {{ input_tokens }}</p>
 <p>Output tokens: {{ output_tokens }}</p>
 """
@@ -291,7 +291,10 @@ def aggregate_results(
         for name, value in single_eval_result.metrics.items():
             name2values[name].append(value)
         if single_eval_result.score is not None:
-            name2values["score"].append(single_eval_result.score)
+            for i in range(len(single_eval_result.score)):
+                if f"score_{i}" not in name2values:
+                    name2values[f"score_{i}"] = []
+                name2values[f"score_{i}"].append(single_eval_result.score)
         if single_eval_result.input_tokens is not None:
             name2values["input_tokens"].append(single_eval_result.input_tokens)
         if single_eval_result.output_tokens is not None:
@@ -300,13 +303,16 @@ def aggregate_results(
         htmls.append(single_eval_result.html)
         convos.append(single_eval_result.convo)
     final_metrics = {}
+    scores = []
     for name, values in name2values.items():
         stats = name2stats.get(name, default_stats)
         for stat in stats:
             key = name if stat == "mean" else f"{name}:{stat}"
             final_metrics[key] = _compute_stat(values, stat)
+        if name.startswith("score"):
+            scores.append(final_metrics[key])
     return EvalResult(
-        score=final_metrics.pop("score", None),
+        score=scores,
         input_tokens=final_metrics.pop("input_tokens", None),
         output_tokens=final_metrics.pop("output_tokens", None),
         metrics=final_metrics,

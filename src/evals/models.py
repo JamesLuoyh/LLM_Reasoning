@@ -39,7 +39,7 @@ os.environ["LANGSMITH_PROJECT"] = "ToT Tutorial"
 
 
 class Gemini2_flash(LanguageModel):
-    def __init__(self, temperature: float = 1.5, num_predict: int = 2048,
+    def __init__(self, temperature: float = 0.7, num_predict: int = 2048,
                  structured: bool = True, max_retries=2):
         self.model = ChatGoogleGenerativeAI(
             model=GEMINI2_FLASH,
@@ -173,7 +173,7 @@ class SelfConsistency(LanguageModel):
         self.debug = debug
 
         if not allow_duplicates:
-            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+            equality_checker = Gemini2_flash(temperature, structured=False)
         else:
             equality_checker = None
 
@@ -252,7 +252,7 @@ class MajorityVote(LanguageModel):
         self.debug = debug
 
         if not allow_duplicates:
-            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+            equality_checker = Gemini2_flash(temperature, structured=False)
         else:
             equality_checker = None
 
@@ -331,13 +331,16 @@ class BordaCount(LanguageModel):
         trace: bool = False,
         debug: bool = False,
         n_generators: int = 5,
+        verifier_temperature: float = 0.7,
+        n_verifiers: int = 5,
     ):
 
-        self.llm = self.select_model_type(model_type, temperature, num_predict)
+        self.llm = self.select_model_type(
+            model_type, verifier_temperature, num_predict)
         self.debug = debug
 
         if not allow_duplicates:
-            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+            equality_checker = Gemini2_flash(temperature, structured=False)
         else:
             equality_checker = None
 
@@ -383,6 +386,7 @@ class BordaCount(LanguageModel):
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
             "n_generators": n_generators,
+            "n_voters": n_verifiers,
         }
 
     def __call__(self, message_list: MessageList) -> str:
@@ -425,7 +429,7 @@ class BestOfN(LanguageModel):
         self.debug = debug
 
         if not allow_duplicates:
-            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+            equality_checker = Gemini2_flash(temperature, structured=False)
         else:
             equality_checker = None
 
@@ -509,15 +513,18 @@ class ScaleVerification(LanguageModel):
         trace: bool = False,
         debug: bool = False,
         n_generators: int = 5,
+        verifier_temperature: float = 0.7,
+        n_verifiers: int = 5,
     ):
-
-        self.llm = self.select_model_type(model_type, temperature, num_predict)
+        # TODO make the generator and the verifier different llms
+        self.llm = self.select_model_type(
+            model_type, verifier_temperature, num_predict)
         self.debug = debug
         # llm = ChatOllama(model="llama3-groq-tool-use")
         # llm = ChatOpenAI(model="gpt-4o-mini")
 
         if not allow_duplicates:
-            equality_checker = Gemini2_flash(temperature=1.5, structured=False)
+            equality_checker = Gemini2_flash(temperature, structured=False)
         else:
             equality_checker = None
 
@@ -564,6 +571,7 @@ class ScaleVerification(LanguageModel):
             "allow_duplicates": allow_duplicates,
             "equality_checker": equality_checker,
             "n_generators": n_generators,
+            "n_verifiers": n_verifiers,
         }
 
     def __call__(self, message_list: MessageList) -> str:
