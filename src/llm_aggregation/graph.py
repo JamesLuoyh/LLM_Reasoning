@@ -48,8 +48,8 @@ def generate(state: State, *, config: RunnableConfig,
              llm: Any, debug: bool = False) -> Dict[str, Any]:
     """Generate the next state."""
     configurable = _ensure_configurable(config)
-    generation_file = "generations.pkl"
-    if os.path.exists(generation_file):
+    generation_file = configurable["generation_file"]
+    if generation_file:
         print("Extracting previously saved generations...")
         with open("generations.pkl", "rb") as file:
             result = pickle.load(file)

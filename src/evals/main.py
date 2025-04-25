@@ -68,6 +68,12 @@ def main():
 
     parser.add_argument("--seed", type=int, default=5, help="The random seed")
 
+    parser.add_argument(
+        "--generation_file",
+        type=str,
+        default="generations.pkl",
+        help="the precomputed generations.")
+
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -97,6 +103,7 @@ def main():
             debug=args.debug,
             verifier_temperature=args.verifier_temperature,
             n_verifiers=args.n_verifiers,
+            generation_file=args.generation_file,
         ),
         "best_of_n": BestOfN(
             model_type=args.model_type,
@@ -121,6 +128,7 @@ def main():
             debug=args.debug,
             verifier_temperature=args.verifier_temperature,
             n_verifiers=args.n_verifiers,
+            generation_file=args.generation_file,
         ),
     }
 
@@ -179,11 +187,9 @@ def main():
         for eval_name, eval_obj in evals.items():
             result = eval_obj(sampler)
             # ^^^ how to use a sampler
-            file_stem = (
-                f"{eval_name}_{model_name}_ng_5_gtemp_0.7_nv_{
-                    args.n_verifiers}_vtemp_{
-                    args.verifier_temperature}"
-            )
+            file_stem = f"{eval_name}_{model_name}_ng_5_gtemp_0.7_nv_{
+                args.n_verifiers}_vtemp_{
+                args.verifier_temperature}"
             dateTimeObj = datetime.now()
             date = dateTimeObj.strftime("_%m_%d_%H_%M_%S")
             report_filename = f"/{root_report_foldername}/{file_stem}{debug_suffix}{date}.html"

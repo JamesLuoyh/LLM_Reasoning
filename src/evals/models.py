@@ -333,6 +333,7 @@ class BordaCount(LanguageModel):
         n_generators: int = 5,
         verifier_temperature: float = 0.7,
         n_verifiers: int = 5,
+        generation_file: str = None,
     ):
 
         self.llm = self.select_model_type(
@@ -387,6 +388,7 @@ class BordaCount(LanguageModel):
             "equality_checker": equality_checker,
             "n_generators": n_generators,
             "n_voters": n_verifiers,
+            "generation_file": generation_file,
         }
 
     def __call__(self, message_list: MessageList) -> str:
@@ -515,6 +517,7 @@ class ScaleVerification(LanguageModel):
         n_generators: int = 5,
         verifier_temperature: float = 0.7,
         n_verifiers: int = 5,
+        generation_file: str = None,
     ):
         # TODO make the generator and the verifier different llms
         self.llm = self.select_model_type(
@@ -572,6 +575,7 @@ class ScaleVerification(LanguageModel):
             "equality_checker": equality_checker,
             "n_generators": n_generators,
             "n_verifiers": n_verifiers,
+            "generation_file": generation_file,
         }
 
     def __call__(self, message_list: MessageList) -> str:
