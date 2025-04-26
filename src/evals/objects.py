@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 Message = dict[str, Any]
 MessageList = list[Message]
 
-GEMINI_API_KEY = "AIzaSyCdTUNjf1V2pk8h7HOqPSgj0W0v474iyd0"
+GEMINI_API_KEY = ""
 GEMINI2_FLASH = "gemini-2.0-flash-001"
 
 
