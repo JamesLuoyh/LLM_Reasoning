@@ -56,32 +56,34 @@ class MathEval(Eval):
                 ]
             # try:
             response = sampler(prompt_messages)
-            response_text = response.content
+            response_texts = response.content
+
             input_tokens = response.input_tokens
             output_tokens = response.output_tokens
             # except Exception as e:
             #     print(f"Error in model invocation: {e}")
             #     response_text = ""
+            scores = []
+            for response_text in response_texts:
+                if self.answer_format:
+                    match = re.search(ANSWER_PATTERN, response_text)
+                    extracted_answer = match.group(1) if match else None
+                else:
+                    extracted_answer = response_text
 
-            if self.answer_format:
-                match = re.search(ANSWER_PATTERN, response_text)
-                extracted_answer = match.group(1) if match else None
-            else:
-                extracted_answer = response_text
-
-            target_match = re.search(r"\\boxed\{(.*)\}", row["Answer"])
-            target_answer = target_match.group(1) if target_match else None
-            score = common.is_equiv(target_answer, extracted_answer)
-            if score < 1 and extracted_answer is not None and extracted_answer != INVALID_ANS:
-                # use gemini2 flash to double check
-                score = common.check_equality(
-                    self.equality_checker, target_answer, extracted_answer)
-                print(score)
-            score = float(score)
+                target_match = re.search(r"\\boxed\{(.*)\}", row["Answer"])
+                target_answer = target_match.group(1) if target_match else None
+                score = common.is_equiv(target_answer, extracted_answer)
+                if score < 1 and extracted_answer is not None and extracted_answer != INVALID_ANS:
+                    # use gemini2 flash to double check
+                    score = common.check_equality(
+                        self.equality_checker, target_answer, extracted_answer)
+                score = float(score)
+                scores.append(score)
             html = common.jinja_env.from_string(HTML_JINJA).render(
                 prompt_messages=prompt_messages,
-                next_message=dict(content=response_text, role="assistant"),
-                score=score,
+                next_message=dict(content=response_texts, role="assistant"),
+                score=scores,
                 correct_answer=target_answer,
                 extracted_answer=extracted_answer,
                 input_tokens=input_tokens,
@@ -90,7 +92,7 @@ class MathEval(Eval):
             convo = prompt_messages + \
                 [dict(content=response_text, role="assistant")]
             return SingleEvalResult(
-                html=html, score=score, input_tokens=input_tokens, output_tokens=output_tokens, convo=convo
+                html=html, score=scores, input_tokens=input_tokens, output_tokens=output_tokens, convo=convo
             )
 
         results = common.map_with_progress(fn, self.examples)
